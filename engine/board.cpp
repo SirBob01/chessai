@@ -1,90 +1,216 @@
-#include <bitset>
 #include <iostream>
+#include <vector>
 
-// Board has 8*8 = 64 cells
-// Each cell can be (pawn, rook, bishop, knight, queen, king) * (black, white) + (empty) = 13 possible states
-// Hence, each cell state can be represented by a 4 bit number (0 - 16)
-// Each row is a 32 bit integer
-// The entire board can be represented by a 256 bit number
+// Uniquely indexed on bitboard
 enum ChessPieces {
-    Empty       = 0,
-    WhitePawn   = 1,
-    WhiteRook   = 2,
-    WhiteKnight = 3,
-    WhiteBishop = 4,
-    WhiteQueen  = 5,
-    WhiteKing   = 6,
+    WhitePawn   = 0,
+    WhiteRook   = 1,
+    WhiteKnight = 2,
+    WhiteBishop = 3,
+    WhiteQueen  = 4,
+    WhiteKing   = 5,
     
-    BlackPawn   = 1 | (1 << 3),
-    BlackRook   = 2 | (1 << 3),
-    BlackKnight = 3 | (1 << 3),
-    BlackBishop = 4 | (1 << 3),
-    BlackQueen  = 5 | (1 << 3),
-    BlackKing   = 6 | (1 << 3)
+    BlackPawn   = 6,
+    BlackRook   = 7,
+    BlackKnight = 8,
+    BlackBishop = 9,
+    BlackQueen  = 10,
+    BlackKing   = 11,
 };
 
-class ChessBoard {
-    uint32_t state[8] = {0};
+// Standard notation
+struct ChessPosition {
+    char file = 0;
+    char rank = 0;
+};
 
-public:
-    ChessBoard(bool initial=true) {
-        if(initial) {
-            set_at('a', '8', ChessPieces::BlackRook);
-            set_at('b', '8', ChessPieces::BlackKnight);
-            set_at('c', '8', ChessPieces::BlackBishop);
-            set_at('d', '8', ChessPieces::BlackQueen);
-            set_at('e', '8', ChessPieces::BlackKing);
-            set_at('f', '8', ChessPieces::BlackBishop);
-            set_at('g', '8', ChessPieces::BlackKnight);
-            set_at('h', '8', ChessPieces::BlackRook);
-
-            set_at('a', '7', ChessPieces::BlackPawn);
-            set_at('b', '7', ChessPieces::BlackPawn);
-            set_at('c', '7', ChessPieces::BlackPawn);
-            set_at('d', '7', ChessPieces::BlackPawn);
-            set_at('e', '7', ChessPieces::BlackPawn);
-            set_at('f', '7', ChessPieces::BlackPawn);
-            set_at('g', '7', ChessPieces::BlackPawn);
-            set_at('h', '7', ChessPieces::BlackPawn);
-
-
-            set_at('a', '1', ChessPieces::WhiteRook);
-            set_at('b', '1', ChessPieces::WhiteKnight);
-            set_at('c', '1', ChessPieces::WhiteBishop);
-            set_at('d', '1', ChessPieces::WhiteQueen);
-            set_at('e', '1', ChessPieces::WhiteKing);
-            set_at('f', '1', ChessPieces::WhiteBishop);
-            set_at('g', '1', ChessPieces::WhiteKnight);
-            set_at('h', '1', ChessPieces::WhiteRook);
-
-            set_at('a', '2', ChessPieces::WhitePawn);
-            set_at('b', '2', ChessPieces::WhitePawn);
-            set_at('c', '2', ChessPieces::WhitePawn);
-            set_at('d', '2', ChessPieces::WhitePawn);
-            set_at('e', '2', ChessPieces::WhitePawn);
-            set_at('f', '2', ChessPieces::WhitePawn);
-            set_at('g', '2', ChessPieces::WhitePawn);
-            set_at('h', '2', ChessPieces::WhitePawn);
+// Utility function for tokenizing a string
+std::vector<std::string> tokenize(std::string base, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string current = "";
+    for(auto &c : base) {
+        if(c == delimiter) {
+            if(current.length()) tokens.push_back(current);
+            current = "";
+        }
+        else {
+            current += c;
         }
     }
+    if(current.length()) tokens.push_back(current);
+    return tokens;
+}
 
-    inline unsigned get_at(char file, char rank) {
-        unsigned row = rank - '1';
-        unsigned col = 4 * (file - 'a');
+class ChessBoard {
+    // Represent the positions of each of the 12 pieces on the board
+    uint64_t _bitboards[12] = {0};
+    uint8_t _turn;
+    int _halfmoves;
+    int _fullmoves;
+    ChessPosition _en_passant_target;
 
-        return (state[row] >> col) & 15;
+public:
+    ChessBoard(std::string fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") {
+        std::vector<std::string> fields = tokenize(fen_string, ' ');
+        
+        int row = 7;
+        int col = 0;
+        for(auto &c : fields[0]) {
+            if(c == '/') {
+                row--;
+                col = 0;
+            }
+            else if(c <= '9' && c >= '0') {
+                col += c - '0';
+            }
+            else {
+                if(c == 'p') set_at(row, col, ChessPieces::BlackPawn);
+                else if(c == 'n') set_at(row, col, ChessPieces::BlackKnight);
+                else if(c == 'b') set_at(row, col, ChessPieces::BlackBishop);
+                else if(c == 'r') set_at(row, col, ChessPieces::BlackRook);
+                else if(c == 'q') set_at(row, col, ChessPieces::BlackQueen);
+                else if(c == 'k') set_at(row, col, ChessPieces::BlackKing);
+
+                else if(c == 'P') set_at(row, col, ChessPieces::WhitePawn);
+                else if(c == 'N') set_at(row, col, ChessPieces::WhiteKnight);
+                else if(c == 'B') set_at(row, col, ChessPieces::WhiteBishop);
+                else if(c == 'R') set_at(row, col, ChessPieces::WhiteRook);
+                else if(c == 'Q') set_at(row, col, ChessPieces::WhiteQueen);
+                else if(c == 'K') set_at(row, col, ChessPieces::WhiteKing);
+                col++;
+            }
+        }
+
+        _turn = fields[1][0];
+        // TODO: field[2] represents castling availability
+        if(fields[3].length() == 2) {
+            _en_passant_target = {fields[3][0], fields[3][1]};
+        }
+        _halfmoves = stoi(fields[4]);
+        _fullmoves = stoi(fields[5]);
     }
 
-    inline void set_at(char file, char rank, uint8_t piece) {
-        unsigned row = rank - '1';
-        unsigned col = 4 * (file - 'a');
+    std::string generate_fen() {
+        std::string fen = "";
+        for(int row = 7; row >= 0; row--) {
+            int counter = 0;
+            for(int col = 0; col < 8; col++) {
+                uint8_t piece = get_at(row, col);
+                if(piece < 12) {
+                    if(counter) {
+                        fen += counter + '0';
+                        counter = 0;
+                    }
+                    if(piece == ChessPieces::BlackPawn) fen += 'p';
+                    else if(piece == ChessPieces::BlackKnight) fen += 'n';
+                    else if(piece == ChessPieces::BlackBishop) fen += 'b';
+                    else if(piece == ChessPieces::BlackRook) fen += 'r';
+                    else if(piece == ChessPieces::BlackQueen) fen += 'q';
+                    else if(piece == ChessPieces::BlackKing) fen += 'k';
+                    
+                    else if(piece == ChessPieces::WhitePawn) fen += 'P';
+                    else if(piece == ChessPieces::WhiteKnight) fen += 'N';
+                    else if(piece == ChessPieces::WhiteBishop) fen += 'B';
+                    else if(piece == ChessPieces::WhiteRook) fen += 'R';
+                    else if(piece == ChessPieces::WhiteQueen) fen += 'Q';
+                    else if(piece == ChessPieces::WhiteKing) fen += 'K';
+                }
+                else {
+                    counter += 1;
+                }
+            }
+            if(counter) fen += counter + '0';
+            if(row) fen += '/';
+        }
+        fen += " ";
+        fen += static_cast<char>(_turn);
 
-        state[row] = (state[row] & ~(15 << col)) | (piece << col);
+        // TODO: Record castling information
+        if(_en_passant_target.file && _en_passant_target.rank) {
+            fen += " ";
+            fen += _en_passant_target.file;
+            fen += _en_passant_target.rank;
+        }
+        else {
+            fen += " -";
+        }
+
+        fen += " ";
+        fen += std::to_string(_halfmoves);
+        fen += " ";
+        fen += std::to_string(_fullmoves);
+        return fen;
+    }
+
+    uint8_t get_at(int row, int col) {
+        uint8_t piece = 0;
+        for(piece; piece < 12; piece++) {
+            if((_bitboards[piece] >> (row * 8 + col)) & 1ULL) return piece;
+        }
+        return piece;
+    }
+
+    inline void set_at(int row, int col, int piece) {
+        _bitboards[piece] |= (1ULL << (row * 8 + col));
+    }
+
+    uint8_t get_at_position(ChessPosition pos) {
+        return get_at(pos.rank-'1', pos.file-'a');
+    }
+
+    inline void set_at_position(ChessPosition pos, int piece) {
+        set_at(pos.rank-'1', pos.file-'a', piece);
     }
 
     void print() {
-        for(auto &row : state) {
-            std::cout << std::bitset<32>(row) << "\n";
+        if(_turn == 'w') std::cout << "White's turn.\n";
+        if(_turn == 'b') std::cout << "Black's turn.\n";
+        std::string ranks = "87654321";
+        std::string files = "abcdefgh";
+        for(auto &r : ranks) {
+            for(auto &f : files) {
+                unsigned piece = get_at_position({f, r});
+                std::string icon = " ";
+                if(piece == ChessPieces::WhitePawn) {
+                    icon = "\u2659";
+                }
+                else if(piece == ChessPieces::WhiteRook) {
+                    icon = "\u2656";
+                }
+                else if(piece == ChessPieces::WhiteKnight) {
+                    icon = "\u2658";
+                }
+                else if(piece == ChessPieces::WhiteBishop) {
+                    icon = "\u2657";
+                }
+                else if(piece == ChessPieces::WhiteQueen) {
+                    icon = "\u2655";
+                }
+                else if(piece == ChessPieces::WhiteKing) {
+                    icon = "\u2654";
+                }
+                
+                else if(piece == ChessPieces::BlackPawn) {
+                    icon = "\u265F";
+                }
+                else if(piece == ChessPieces::BlackRook) {
+                    icon = "\u265C";
+                }
+                else if(piece == ChessPieces::BlackKnight) {
+                    icon = "\u265E";
+                }
+                else if(piece == ChessPieces::BlackBishop) {
+                    icon = "\u265D";
+                }
+                else if(piece == ChessPieces::BlackQueen) {
+                    icon = "\u265B";
+                }
+                else if(piece == ChessPieces::BlackKing) {
+                    icon = "\u265A";
+                }
+                std::cout << icon << " ";
+            }
+            std::cout << "\n";
         }
     }
 };
