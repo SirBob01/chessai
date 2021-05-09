@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 
-// Uniquely indexed on bitboard
+// Uniquely indexed on bitboard and piece weights
 enum ChessPieces {
     WhitePawn   = 0,
     WhiteRook   = 1,
@@ -16,6 +16,16 @@ enum ChessPieces {
     BlackBishop = 9,
     BlackQueen  = 10,
     BlackKing   = 11,
+
+    // Representing all white or all black pieces
+    White = 12,
+    Black = 13
+};
+
+// Used for calculating material score
+const int piece_weights[] = {
+     1,  5,  3,  3,  9,  4, // White pieces
+    -1, -5, -3, -3, -9, -4  // Black pieces
 };
 
 // Standard notation
@@ -43,11 +53,13 @@ std::vector<std::string> tokenize(std::string base, char delimiter) {
 
 class ChessBoard {
     // Represent the positions of each of the 12 pieces on the board
-    uint64_t _bitboards[12] = {0};
-    uint8_t _turn;
+    // Extra 2 bitboards represent white/black pieces in general
+    uint64_t _bitboards[14] = {0};
+    uint8_t _turn;            // w or b
+    uint8_t _castling_rights; // qkQK (from most to least significant bit)
+    ChessPosition _en_passant_target;
     int _halfmoves;
     int _fullmoves;
-    ChessPosition _en_passant_target;
 
 public:
     ChessBoard(std::string fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") {
@@ -82,12 +94,35 @@ public:
         }
 
         _turn = fields[1][0];
-        // TODO: field[2] represents castling availability
+        _castling_rights = 0;
+        for(auto &c : fields[2]) {
+            int shift;
+            if(c == 'K') shift = 0;
+            else if(c == 'Q') shift = 1;
+            else if(c == 'k') shift = 2;
+            else if(c == 'q') shift = 3;
+            _castling_rights |= (1 << shift);
+        }
+
         if(fields[3].length() == 2) {
             _en_passant_target = {fields[3][0], fields[3][1]};
         }
         _halfmoves = stoi(fields[4]);
         _fullmoves = stoi(fields[5]);
+    }
+
+    int calculate_material() {
+        int total = 0;
+        for(int i = 0; i < 12; i++) {
+            int bitcount = 0; // Count the number of bits in the bitboard
+            uint64_t bitboard = _bitboards[i];
+            while(bitboard) {
+                bitboard &= (bitboard-1);
+                bitcount++;
+            }
+            total += piece_weights[i] * bitcount;
+        }
+        return total;
     }
 
     std::string generate_fen() {
@@ -125,7 +160,15 @@ public:
         fen += " ";
         fen += static_cast<char>(_turn);
 
-        // TODO: Record castling information
+        std::string castling_rights = "";
+        
+        if(_castling_rights & 1) castling_rights += 'K';
+        if((_castling_rights >> 1) & 1) castling_rights += 'Q';
+        if((_castling_rights >> 2) & 1) castling_rights += 'k';
+        if((_castling_rights >> 3) & 1) castling_rights += 'q';
+        if(castling_rights.length() == 0) castling_rights = "-";
+        fen += " " + castling_rights;
+        
         if(_en_passant_target.file && _en_passant_target.rank) {
             fen += " ";
             fen += _en_passant_target.file;
@@ -151,6 +194,12 @@ public:
     }
 
     inline void set_at(int row, int col, int piece) {
+        if(piece < 6) {
+            _bitboards[ChessPieces::White] |= (1ULL << (row * 8 + col));
+        }
+        else {
+            _bitboards[ChessPieces::Black] |= (1ULL << (row * 8 + col));
+        }
         _bitboards[piece] |= (1ULL << (row * 8 + col));
     }
 
