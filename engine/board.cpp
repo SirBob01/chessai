@@ -111,6 +111,8 @@ public:
         _fullmoves = stoi(fields[5]);
     }
 
+    ChessBoard(ChessBoard &other) : ChessBoard(other.generate_fen()) {}
+
     int calculate_material() {
         int total = 0;
         for(int i = 0; i < 12; i++) {
