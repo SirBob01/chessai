@@ -195,14 +195,31 @@ public:
         return piece;
     }
 
-    inline void set_at(int row, int col, int piece) {
+    uint8_t set_at(int row, int col, int piece) {
+        clear_at(row, col);
+        uint64_t mask = 1ULL << (row * 8 + col);
         if(piece < 6) {
-            _bitboards[ChessPieces::White] |= (1ULL << (row * 8 + col));
+            _bitboards[ChessPieces::White] |= mask;
         }
         else {
-            _bitboards[ChessPieces::Black] |= (1ULL << (row * 8 + col));
+            _bitboards[ChessPieces::Black] |= mask;
         }
-        _bitboards[piece] |= (1ULL << (row * 8 + col));
+        _bitboards[piece] |= mask;
+    }
+
+    uint8_t clear_at(int row, int col) {
+        // Clear both white and black bitboards
+        uint64_t mask = ~(1ULL << (row * 8 + col));
+        _bitboards[12] &= mask;
+        _bitboards[13] &= mask;
+
+        uint8_t piece = 0;
+        for(piece; piece < 12; piece++) {
+            if((_bitboards[piece] >> (row * 8 + col)) & 1ULL) {
+                _bitboards[piece] &= mask;
+                break;
+            }
+        }
     }
 
     uint8_t get_at_position(ChessPosition pos) {
