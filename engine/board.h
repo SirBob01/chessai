@@ -152,6 +152,7 @@ namespace chess {
 
         /**
          * Generate a move given from and to positions
+         * If move list is empty, then player is in checkmate
          */
         std::vector<ChessMove> generate_move_list();
 

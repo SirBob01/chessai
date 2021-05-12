@@ -213,7 +213,9 @@ namespace chess {
         if(move.flags & ChessMoveFlag::EnPassant) {
             // Clear the square of the captured pawn
             int rankd = move.to.shift - move.from.shift;
-            int dir = (rankd > 0) - (rankd < 0);
+            
+            // One rank up or one rank down depending on current player
+            int dir = (rankd > 0) - (rankd < 0); 
             clear_at(ChessPosition(_en_passant_target.shift - (dir * 8)));
             _en_passant_target = ChessPosition();
         }
@@ -382,6 +384,8 @@ namespace chess {
     }
 
     std::vector<ChessMove> ChessBoard::generate_move_list() {
+        // TODO: Only generate LEGAL moves
+        // i.e., any move made CANNOT put the king in check
         std::vector<ChessMove> moves;
         int start;
         if(_turn == 'w') {
