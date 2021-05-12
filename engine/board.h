@@ -77,7 +77,7 @@ namespace chess {
     struct ChessMove {
         ChessPosition from;
         ChessPosition to;
-        uint16_t flags = ChessMoveFlag::Quiet;
+        unsigned flags = ChessMoveFlag::Quiet;
     };
 
 
@@ -141,6 +141,7 @@ namespace chess {
 
         /**
          * Generate a valid chess move given shift positions
+         * Used to validate move positions from user input
          */
         ChessMove create_move(ChessPosition from, ChessPosition to); 
 
