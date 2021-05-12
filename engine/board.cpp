@@ -190,22 +190,18 @@ namespace chess {
         // Move to target square and handle promotions
         clear_at(move.from);
         if(move.flags & ChessMoveFlag::BishopPromo) {
-            std::cout << "Promote to Bishop!\n";
             if(_turn == 'w') set_at(move.to, ChessPiece::WhiteBishop);
             else set_at(move.to, ChessPiece::BlackBishop);
         }
         else if(move.flags & ChessMoveFlag::RookPromo) {
-            std::cout << "Promote to Rook!\n";
             if(_turn == 'w') set_at(move.to, ChessPiece::WhiteRook);
             else set_at(move.to, ChessPiece::BlackRook);
         }
         else if(move.flags & ChessMoveFlag::KnightPromo) {
-            std::cout << "Promote to Knight!\n";
             if(_turn == 'w') set_at(move.to, ChessPiece::WhiteKnight);
             else set_at(move.to, ChessPiece::BlackKnight);
         }
         else if(move.flags & ChessMoveFlag::QueenPromo) {
-            std::cout << "Promote to Queen!\n";
             if(_turn == 'w') set_at(move.to, ChessPiece::WhiteQueen);
             else set_at(move.to, ChessPiece::BlackQueen);
         }
