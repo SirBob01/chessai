@@ -94,6 +94,11 @@ namespace chess {
         int _halfmoves;
         int _fullmoves;
 
+        /**
+         * Generate all possible pawn moves and append them to a move vector
+         */
+        void generate_pawn_moves(uint64_t bitboard, std::vector<ChessMove> &moves);
+
     public:
         ChessBoard(std::string fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         ChessBoard(ChessBoard &other) : ChessBoard(other.generate_fen()) {};
@@ -144,11 +149,6 @@ namespace chess {
          * Used to validate move positions from user input
          */
         ChessMove create_move(ChessPosition from, ChessPosition to); 
-
-        /**
-         * Generate all possible pawn moves and append them to a move vector
-         */
-        void generate_pawn_moves(uint64_t bitboard, std::vector<ChessMove> &moves);
 
         /**
          * Generate a move given from and to positions

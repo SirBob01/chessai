@@ -124,128 +124,6 @@ namespace chess {
         return fen;
     }
 
-    int ChessBoard::calculate_material() {
-        int total = 0;
-        for(int i = 0; i < 12; i++) {
-            int bitcount = 0; // Count the number of bits in the bitboard
-            uint64_t bitboard = _bitboards[i];
-            while(bitboard) {
-                bitboard &= (bitboard-1);
-                bitcount++;
-            }
-            total += piece_weights[i] * bitcount;
-        }
-        return total;
-    }
-    
-    ChessPiece ChessBoard::get_at(ChessPosition pos) {
-        uint8_t piece = 0;
-        for(piece; piece < 12; piece++) {
-            if((_bitboards[piece] >> pos.shift) & 1ULL) return static_cast<ChessPiece>(piece);
-        }
-        return ChessPiece::Empty;
-    }
-
-    void ChessBoard::set_at(ChessPosition pos, ChessPiece piece) {
-        clear_at(pos);
-        uint64_t mask = 1ULL << pos.shift;
-        if(piece < 6) {
-            _bitboards[ChessPiece::White] |= mask;
-        }
-        else {
-            _bitboards[ChessPiece::Black] |= mask;
-        }
-        _bitboards[piece] |= mask;
-    }
-
-    void ChessBoard::clear_at(ChessPosition pos) {
-        // Clear both white and black bitboards
-        uint64_t mask = ~(1ULL << pos.shift);
-        _bitboards[12] &= mask;
-        _bitboards[13] &= mask;
-
-        uint8_t piece = 0;
-        for(piece; piece < 14; piece++) {
-            if((_bitboards[piece] >> pos.shift) & 1ULL) {
-                _bitboards[piece] &= mask;
-                break;
-            }
-        }
-    }
-    
-    void ChessBoard::set_at_coords(int row, int col, ChessPiece piece) {
-        set_at({row * 8 + col}, piece);
-    }
-
-    ChessPiece ChessBoard::get_at_coords(int row, int col) {
-        return get_at({row * 8 + col});
-    }
-
-    void ChessBoard::execute_move(ChessMove move) {
-        // TODO: Deal with castling
-        _halfmoves++;
-        ChessPiece piece = get_at(move.from);
-        ChessPiece target = get_at(move.to);
-
-        // Move to target square and handle promotions
-        clear_at(move.from);
-        if(move.flags & ChessMoveFlag::BishopPromo) {
-            if(_turn == 'w') set_at(move.to, ChessPiece::WhiteBishop);
-            else set_at(move.to, ChessPiece::BlackBishop);
-        }
-        else if(move.flags & ChessMoveFlag::RookPromo) {
-            if(_turn == 'w') set_at(move.to, ChessPiece::WhiteRook);
-            else set_at(move.to, ChessPiece::BlackRook);
-        }
-        else if(move.flags & ChessMoveFlag::KnightPromo) {
-            if(_turn == 'w') set_at(move.to, ChessPiece::WhiteKnight);
-            else set_at(move.to, ChessPiece::BlackKnight);
-        }
-        else if(move.flags & ChessMoveFlag::QueenPromo) {
-            if(_turn == 'w') set_at(move.to, ChessPiece::WhiteQueen);
-            else set_at(move.to, ChessPiece::BlackQueen);
-        }
-        else {
-            set_at(move.to, piece);
-        }
-
-        // Check for en passant capture
-        if(move.flags & ChessMoveFlag::EnPassant) {
-            // Clear the square of the captured pawn
-            int rankd = move.to.shift - move.from.shift;
-            
-            // One rank up or one rank down depending on current player
-            int dir = (rankd > 0) - (rankd < 0); 
-            clear_at(ChessPosition(_en_passant_target.shift - (dir * 8)));
-            _en_passant_target = ChessPosition();
-        }
-
-        // Update en passant position if pawn advanced two ranks
-        if(move.flags & ChessMoveFlag::PawnDouble) {
-            _en_passant_target = ChessPosition(move.from.shift + (move.to.shift - move.from.shift)/2);
-        }
-        else {
-            _en_passant_target = ChessPosition();
-        }
-
-        // Reset halfmove counter if piece was pawn advance or move was a capture
-        if(move.flags & (ChessMoveFlag::PawnAdvance | 
-                         ChessMoveFlag::PawnDouble  | 
-                         ChessMoveFlag::EnPassant   | 
-                         ChessMoveFlag::Capture)) {
-            _halfmoves = 0;
-        }
-
-        // Update turn and fullmove counter
-        if(_turn == 'b') {
-            _fullmoves++;
-            _turn = 'w';
-        }
-        else {
-            _turn = 'b';
-        }
-    }
-
     void ChessBoard::generate_pawn_moves(uint64_t bitboard, std::vector<ChessMove> &moves) {
         uint64_t final_ranks = 0xFF000000000000FF;
         uint64_t all_pieces = _bitboards[ChessPiece::White] | _bitboards[ChessPiece::Black];
@@ -383,6 +261,128 @@ namespace chess {
         }
     }
 
+    int ChessBoard::calculate_material() {
+        int total = 0;
+        for(int i = 0; i < 12; i++) {
+            int bitcount = 0; // Count the number of bits in the bitboard
+            uint64_t bitboard = _bitboards[i];
+            while(bitboard) {
+                bitboard &= (bitboard-1);
+                bitcount++;
+            }
+            total += piece_weights[i] * bitcount;
+        }
+        return total;
+    }
+    
+    ChessPiece ChessBoard::get_at(ChessPosition pos) {
+        uint8_t piece = 0;
+        for(piece; piece < 12; piece++) {
+            if((_bitboards[piece] >> pos.shift) & 1ULL) return static_cast<ChessPiece>(piece);
+        }
+        return ChessPiece::Empty;
+    }
+
+    void ChessBoard::set_at(ChessPosition pos, ChessPiece piece) {
+        clear_at(pos);
+        uint64_t mask = 1ULL << pos.shift;
+        if(piece < 6) {
+            _bitboards[ChessPiece::White] |= mask;
+        }
+        else {
+            _bitboards[ChessPiece::Black] |= mask;
+        }
+        _bitboards[piece] |= mask;
+    }
+
+    void ChessBoard::clear_at(ChessPosition pos) {
+        // Clear both white and black bitboards
+        uint64_t mask = ~(1ULL << pos.shift);
+        _bitboards[12] &= mask;
+        _bitboards[13] &= mask;
+
+        uint8_t piece = 0;
+        for(piece; piece < 14; piece++) {
+            if((_bitboards[piece] >> pos.shift) & 1ULL) {
+                _bitboards[piece] &= mask;
+                break;
+            }
+        }
+    }
+    
+    void ChessBoard::set_at_coords(int row, int col, ChessPiece piece) {
+        set_at({row * 8 + col}, piece);
+    }
+
+    ChessPiece ChessBoard::get_at_coords(int row, int col) {
+        return get_at({row * 8 + col});
+    }
+
+    void ChessBoard::execute_move(ChessMove move) {
+        // TODO: Deal with castling
+        _halfmoves++;
+        ChessPiece piece = get_at(move.from);
+        ChessPiece target = get_at(move.to);
+
+        // Move to target square and handle promotions
+        clear_at(move.from);
+        if(move.flags & ChessMoveFlag::BishopPromo) {
+            if(_turn == 'w') set_at(move.to, ChessPiece::WhiteBishop);
+            else set_at(move.to, ChessPiece::BlackBishop);
+        }
+        else if(move.flags & ChessMoveFlag::RookPromo) {
+            if(_turn == 'w') set_at(move.to, ChessPiece::WhiteRook);
+            else set_at(move.to, ChessPiece::BlackRook);
+        }
+        else if(move.flags & ChessMoveFlag::KnightPromo) {
+            if(_turn == 'w') set_at(move.to, ChessPiece::WhiteKnight);
+            else set_at(move.to, ChessPiece::BlackKnight);
+        }
+        else if(move.flags & ChessMoveFlag::QueenPromo) {
+            if(_turn == 'w') set_at(move.to, ChessPiece::WhiteQueen);
+            else set_at(move.to, ChessPiece::BlackQueen);
+        }
+        else {
+            set_at(move.to, piece);
+        }
+
+        // Check for en passant capture
+        if(move.flags & ChessMoveFlag::EnPassant) {
+            // Clear the square of the captured pawn
+            int rankd = move.to.shift - move.from.shift;
+            
+            // One rank up or one rank down depending on current player
+            int dir = (rankd > 0) - (rankd < 0); 
+            clear_at(ChessPosition(_en_passant_target.shift - (dir * 8)));
+            _en_passant_target = ChessPosition();
+        }
+
+        // Update en passant position if pawn advanced two ranks
+        if(move.flags & ChessMoveFlag::PawnDouble) {
+            _en_passant_target = ChessPosition(move.from.shift + (move.to.shift - move.from.shift)/2);
+        }
+        else {
+            _en_passant_target = ChessPosition();
+        }
+
+        // Reset halfmove counter if piece was pawn advance or move was a capture
+        if(move.flags & (ChessMoveFlag::PawnAdvance | 
+                         ChessMoveFlag::PawnDouble  | 
+                         ChessMoveFlag::EnPassant   | 
+                         ChessMoveFlag::Capture)) {
+            _halfmoves = 0;
+        }
+
+        // Update turn and fullmove counter
+        if(_turn == 'b') {
+            _fullmoves++;
+            _turn = 'w';
+        }
+        else {
+            _turn = 'b';
+        }
+    }
+
     std::vector<ChessMove> ChessBoard::generate_move_list() {
         // TODO: Only generate LEGAL moves
         // i.e., any move made CANNOT put the king in check
@@ -406,7 +406,6 @@ namespace chess {
         }
         return moves;
     }
-
 
     ChessMove ChessBoard::create_move(ChessPosition from, ChessPosition to) {
         std::vector<ChessMove> valid_moves = generate_move_list();
