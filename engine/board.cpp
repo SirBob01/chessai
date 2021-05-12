@@ -426,7 +426,9 @@ namespace chess {
         // Set code page to allow UTF16 characters to show (chcp 65001 on powershell)
         if(_turn == 'w') std::cout << "White's turn.\n";
         if(_turn == 'b') std::cout << "Black's turn.\n";
-        for(int rank = 0; rank < 8; rank++) {
+        std::string files = "ABCDEFGH";
+        for(int rank = 7; rank >= 0; rank--) {
+            std::cout << rank+1 << " ";
             for(int file = 0; file < 8; file++) {
                 unsigned piece = get_at_coords(rank, file);
                 std::string icon = "-";
@@ -471,5 +473,10 @@ namespace chess {
             }
             std::cout << "\n";
         }
+        std::cout << "  ";
+        for(auto &f : files) {
+            std::cout << f << " ";
+        }
+        std::cout << "\n";
     }
 }
