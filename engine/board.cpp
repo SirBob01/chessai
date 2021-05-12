@@ -423,6 +423,7 @@ namespace chess {
     }
 
     void ChessBoard::print() {
+        // Set code page to allow UTF16 characters to show (chcp 65001 on powershell)
         if(_turn == 'w') std::cout << "White's turn.\n";
         if(_turn == 'b') std::cout << "Black's turn.\n";
         for(int rank = 0; rank < 8; rank++) {
