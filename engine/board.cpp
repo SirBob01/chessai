@@ -225,6 +225,9 @@ namespace chess {
     }
 
     void ChessBoard::generate_pawn_moves(uint64_t bitboard, std::vector<ChessMove> &moves) {
+        // TODO: Implement promotions
+        // Promotion occurs when pawn reaches final rank
+        // Can become either a queen, rook, bishop, or knight (but often just queen)
         uint64_t all_pieces = _bitboards[ChessPiece::White] | _bitboards[ChessPiece::Black];
         uint64_t opposite_color, en_passant_mask = 0;
         if(_en_passant_target.shift != -1) {
@@ -314,6 +317,21 @@ namespace chess {
             }
         }
         return moves;
+    }
+
+
+    ChessMove ChessBoard::create_move(ChessPosition from, ChessPosition to) {
+        std::vector<ChessMove> valid_moves = generate_move_list();
+        for(auto &move : valid_moves) {
+            if(move.from.shift == from.shift && move.to.shift == to.shift) {
+                return move;
+            }
+        }
+        return {
+            ChessPosition(), 
+            ChessPosition(), 
+            ChessMoveFlag::Invalid
+        };
     }
 
     void ChessBoard::print() {

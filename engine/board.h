@@ -68,6 +68,7 @@ namespace chess {
         QueenPromo  = 1 << 7,
         BishopPromo = 1 << 8,
         RookPromo   = 1 << 9,
+        Invalid     = 1 << 10
     };
 
     /**
