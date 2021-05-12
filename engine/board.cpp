@@ -1,69 +1,22 @@
-#include <iostream>
-#include <vector>
+#include "board.h"
 
-// Uniquely indexed on bitboard and piece weights
-enum ChessPieces {
-    WhitePawn   = 0,
-    WhiteRook   = 1,
-    WhiteKnight = 2,
-    WhiteBishop = 3,
-    WhiteQueen  = 4,
-    WhiteKing   = 5,
-    
-    BlackPawn   = 6,
-    BlackRook   = 7,
-    BlackKnight = 8,
-    BlackBishop = 9,
-    BlackQueen  = 10,
-    BlackKing   = 11,
-
-    // Representing all white or all black pieces
-    White = 12,
-    Black = 13
-};
-
-// Used for calculating material score
-const int piece_weights[] = {
-     1,  5,  3,  3,  9,  4, // White pieces
-    -1, -5, -3, -3, -9, -4  // Black pieces
-};
-
-// Standard notation
-struct ChessPosition {
-    char file = 0;
-    char rank = 0;
-};
-
-// Utility function for tokenizing a string
-std::vector<std::string> tokenize(std::string base, char delimiter) {
-    std::vector<std::string> tokens;
-    std::string current = "";
-    for(auto &c : base) {
-        if(c == delimiter) {
-            if(current.length()) tokens.push_back(current);
-            current = "";
-        }
-        else {
-            current += c;
-        }
+namespace chess {
+    ChessPosition::ChessPosition(char file, char rank) {
+        int row = rank - '1';
+        int col = file - 'a';
+        shift = row * 8 + col;
     }
-    if(current.length()) tokens.push_back(current);
-    return tokens;
-}
 
-class ChessBoard {
-    // Represent the positions of each of the 12 pieces on the board
-    // Extra 2 bitboards represent white/black pieces in general
-    uint64_t _bitboards[14] = {0};
-    uint8_t _turn;            // w or b
-    uint8_t _castling_rights; // qkQK (from most to least significant bit)
-    ChessPosition _en_passant_target;
-    int _halfmoves;
-    int _fullmoves;
+    std::string ChessPosition::standard_notation() {
+        int row = shift / 8;
+        int col = shift % 8;
+        char rank = row + '1';
+        char field = col + 'a';
+        return std::string({field, rank});
+    }
 
-public:
-    ChessBoard(std::string fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") {
-        std::vector<std::string> fields = tokenize(fen_string, ' ');
+    ChessBoard::ChessBoard(std::string fen_string) {
+        std::vector<std::string> fields = chess::util::tokenize(fen_string, ' ');
         
         int row = 7;
         int col = 0;
@@ -76,19 +29,20 @@ public:
                 col += c - '0';
             }
             else {
-                if(c == 'p') set_at(row, col, ChessPieces::BlackPawn);
-                else if(c == 'n') set_at(row, col, ChessPieces::BlackKnight);
-                else if(c == 'b') set_at(row, col, ChessPieces::BlackBishop);
-                else if(c == 'r') set_at(row, col, ChessPieces::BlackRook);
-                else if(c == 'q') set_at(row, col, ChessPieces::BlackQueen);
-                else if(c == 'k') set_at(row, col, ChessPieces::BlackKing);
+                ChessPosition pos = ChessPosition(row * 8 + col);
+                if(c == 'p') set_at(pos, ChessPiece::BlackPawn);
+                else if(c == 'n') set_at(pos, ChessPiece::BlackKnight);
+                else if(c == 'b') set_at(pos, ChessPiece::BlackBishop);
+                else if(c == 'r') set_at(pos, ChessPiece::BlackRook);
+                else if(c == 'q') set_at(pos, ChessPiece::BlackQueen);
+                else if(c == 'k') set_at(pos, ChessPiece::BlackKing);
 
-                else if(c == 'P') set_at(row, col, ChessPieces::WhitePawn);
-                else if(c == 'N') set_at(row, col, ChessPieces::WhiteKnight);
-                else if(c == 'B') set_at(row, col, ChessPieces::WhiteBishop);
-                else if(c == 'R') set_at(row, col, ChessPieces::WhiteRook);
-                else if(c == 'Q') set_at(row, col, ChessPieces::WhiteQueen);
-                else if(c == 'K') set_at(row, col, ChessPieces::WhiteKing);
+                else if(c == 'P') set_at(pos, ChessPiece::WhitePawn);
+                else if(c == 'N') set_at(pos, ChessPiece::WhiteKnight);
+                else if(c == 'B') set_at(pos, ChessPiece::WhiteBishop);
+                else if(c == 'R') set_at(pos, ChessPiece::WhiteRook);
+                else if(c == 'Q') set_at(pos, ChessPiece::WhiteQueen);
+                else if(c == 'K') set_at(pos, ChessPiece::WhiteKing);
                 col++;
             }
         }
@@ -105,52 +59,36 @@ public:
         }
 
         if(fields[3].length() == 2) {
-            _en_passant_target = {fields[3][0], fields[3][1]};
+            _en_passant_target = ChessPosition(fields[3][0], fields[3][1]);
         }
         _halfmoves = stoi(fields[4]);
         _fullmoves = stoi(fields[5]);
     }
 
-    ChessBoard(ChessBoard &other) : ChessBoard(other.generate_fen()) {}
-
-    int calculate_material() {
-        int total = 0;
-        for(int i = 0; i < 12; i++) {
-            int bitcount = 0; // Count the number of bits in the bitboard
-            uint64_t bitboard = _bitboards[i];
-            while(bitboard) {
-                bitboard &= (bitboard-1);
-                bitcount++;
-            }
-            total += piece_weights[i] * bitcount;
-        }
-        return total;
-    }
-
-    std::string generate_fen() {
+    std::string ChessBoard::generate_fen() {
         std::string fen = "";
         for(int row = 7; row >= 0; row--) {
             int counter = 0;
             for(int col = 0; col < 8; col++) {
-                uint8_t piece = get_at(row, col);
+                uint8_t piece = get_at_coords(row, col);
                 if(piece < 12) {
                     if(counter) {
                         fen += counter + '0';
                         counter = 0;
                     }
-                    if(piece == ChessPieces::BlackPawn) fen += 'p';
-                    else if(piece == ChessPieces::BlackKnight) fen += 'n';
-                    else if(piece == ChessPieces::BlackBishop) fen += 'b';
-                    else if(piece == ChessPieces::BlackRook) fen += 'r';
-                    else if(piece == ChessPieces::BlackQueen) fen += 'q';
-                    else if(piece == ChessPieces::BlackKing) fen += 'k';
+                    if(piece == ChessPiece::BlackPawn) fen += 'p';
+                    else if(piece == ChessPiece::BlackKnight) fen += 'n';
+                    else if(piece == ChessPiece::BlackBishop) fen += 'b';
+                    else if(piece == ChessPiece::BlackRook) fen += 'r';
+                    else if(piece == ChessPiece::BlackQueen) fen += 'q';
+                    else if(piece == ChessPiece::BlackKing) fen += 'k';
                     
-                    else if(piece == ChessPieces::WhitePawn) fen += 'P';
-                    else if(piece == ChessPieces::WhiteKnight) fen += 'N';
-                    else if(piece == ChessPieces::WhiteBishop) fen += 'B';
-                    else if(piece == ChessPieces::WhiteRook) fen += 'R';
-                    else if(piece == ChessPieces::WhiteQueen) fen += 'Q';
-                    else if(piece == ChessPieces::WhiteKing) fen += 'K';
+                    else if(piece == ChessPiece::WhitePawn) fen += 'P';
+                    else if(piece == ChessPiece::WhiteKnight) fen += 'N';
+                    else if(piece == ChessPiece::WhiteBishop) fen += 'B';
+                    else if(piece == ChessPiece::WhiteRook) fen += 'R';
+                    else if(piece == ChessPiece::WhiteQueen) fen += 'Q';
+                    else if(piece == ChessPiece::WhiteKing) fen += 'K';
                 }
                 else {
                     counter += 1;
@@ -171,13 +109,12 @@ public:
         if(castling_rights.length() == 0) castling_rights = "-";
         fen += " " + castling_rights;
         
-        if(_en_passant_target.file && _en_passant_target.rank) {
-            fen += " ";
-            fen += _en_passant_target.file;
-            fen += _en_passant_target.rank;
+        if(_en_passant_target.shift == -1) {
+            fen += " -";
         }
         else {
-            fen += " -";
+            fen += " ";
+            fen += _en_passant_target.standard_notation();
         }
 
         fen += " ";
@@ -187,93 +124,240 @@ public:
         return fen;
     }
 
-    uint8_t get_at(int row, int col) {
+    int ChessBoard::calculate_material() {
+        int total = 0;
+        for(int i = 0; i < 12; i++) {
+            int bitcount = 0; // Count the number of bits in the bitboard
+            uint64_t bitboard = _bitboards[i];
+            while(bitboard) {
+                bitboard &= (bitboard-1);
+                bitcount++;
+            }
+            total += piece_weights[i] * bitcount;
+        }
+        return total;
+    }
+    
+    ChessPiece ChessBoard::get_at(ChessPosition pos) {
         uint8_t piece = 0;
         for(piece; piece < 12; piece++) {
-            if((_bitboards[piece] >> (row * 8 + col)) & 1ULL) return piece;
+            if((_bitboards[piece] >> pos.shift) & 1ULL) return static_cast<ChessPiece>(piece);
         }
-        return piece;
+        return ChessPiece::Empty;
     }
 
-    uint8_t set_at(int row, int col, int piece) {
-        clear_at(row, col);
-        uint64_t mask = 1ULL << (row * 8 + col);
+    void ChessBoard::set_at(ChessPosition pos, ChessPiece piece) {
+        clear_at(pos);
+        uint64_t mask = 1ULL << pos.shift;
         if(piece < 6) {
-            _bitboards[ChessPieces::White] |= mask;
+            _bitboards[ChessPiece::White] |= mask;
         }
         else {
-            _bitboards[ChessPieces::Black] |= mask;
+            _bitboards[ChessPiece::Black] |= mask;
         }
         _bitboards[piece] |= mask;
     }
 
-    uint8_t clear_at(int row, int col) {
+    void ChessBoard::clear_at(ChessPosition pos) {
         // Clear both white and black bitboards
-        uint64_t mask = ~(1ULL << (row * 8 + col));
+        uint64_t mask = ~(1ULL << pos.shift);
         _bitboards[12] &= mask;
         _bitboards[13] &= mask;
 
         uint8_t piece = 0;
-        for(piece; piece < 12; piece++) {
-            if((_bitboards[piece] >> (row * 8 + col)) & 1ULL) {
+        for(piece; piece < 14; piece++) {
+            if((_bitboards[piece] >> pos.shift) & 1ULL) {
                 _bitboards[piece] &= mask;
                 break;
             }
         }
     }
-
-    uint8_t get_at_position(ChessPosition pos) {
-        return get_at(pos.rank-'1', pos.file-'a');
+    
+    void ChessBoard::set_at_coords(int row, int col, ChessPiece piece) {
+        set_at({row * 8 + col}, piece);
     }
 
-    inline void set_at_position(ChessPosition pos, int piece) {
-        set_at(pos.rank-'1', pos.file-'a', piece);
+    ChessPiece ChessBoard::get_at_coords(int row, int col) {
+        return get_at({row * 8 + col});
     }
 
-    void print() {
+    void ChessBoard::execute_move(ChessMove move) {
+        // TODO: Deal with castling
+        _halfmoves++;
+        ChessPiece piece = get_at(move.from);
+        ChessPiece target = get_at(move.to);
+
+        // Move to target square and check for en passant capture
+        clear_at(move.from);
+        set_at(move.to, piece);
+        if(move.flags & ChessMoveFlag::EnPassant) {
+            // Clear the square of the captured pawn
+            int rankd = move.to.shift - move.from.shift;
+            int dir = (rankd > 0) - (rankd < 0);
+            clear_at(ChessPosition(_en_passant_target.shift - (dir * 8)));
+            _en_passant_target = ChessPosition();
+        }
+
+        // Update en passant position if pawn advanced two ranks
+        if(move.flags & ChessMoveFlag::PawnDouble) {
+            _en_passant_target = ChessPosition(move.from.shift + (move.to.shift - move.from.shift)/2);
+        }
+        else {
+            _en_passant_target = ChessPosition();
+        }
+
+        // Reset halfmove counter if piece was pawn advance or move was a capture
+        if(move.flags & (ChessMoveFlag::PawnAdvance | 
+                         ChessMoveFlag::PawnDouble  | 
+                         ChessMoveFlag::EnPassant   | 
+                         ChessMoveFlag::Capture)) {
+            _halfmoves = 0;
+        }
+
+        // Update turn and fullmove counter
+        if(_turn == 'b') {
+            _fullmoves++;
+            _turn = 'w';
+        }
+        else {
+            _turn = 'b';
+        }
+    }
+
+    void ChessBoard::generate_pawn_moves(uint64_t bitboard, std::vector<ChessMove> &moves) {
+        uint64_t all_pieces = _bitboards[ChessPiece::White] | _bitboards[ChessPiece::Black];
+        uint64_t opposite_color, en_passant_mask = 0;
+        if(_en_passant_target.shift != -1) {
+            en_passant_mask = 1ULL << _en_passant_target.shift;
+        }
+        if(_turn == 'w') {
+            opposite_color = _bitboards[ChessPiece::Black];
+        }
+        else {
+            // If it's black's turn, flip all auxiliary bitboards
+            opposite_color = flip_vertical(_bitboards[ChessPiece::White]);
+            all_pieces = flip_vertical(all_pieces);
+            en_passant_mask = flip_vertical(en_passant_mask);
+        }
+
+        while(bitboard) {
+            uint64_t piece = bitboard & (-bitboard);
+            ChessPosition from = ChessPosition(find_lsb(piece));
+            if(_turn == 'b') piece = flip_vertical(piece);
+
+            uint64_t advance = get_pawn_advance_mask(piece, all_pieces);
+            if(_turn == 'b') advance = flip_vertical(advance); // Unflip final moves if it's black's turn
+            while(advance) {
+                uint64_t move = advance & (-advance);
+                ChessPosition to(find_lsb(move));
+                moves.push_back({
+                    from, to, ChessMoveFlag::Quiet | ChessMoveFlag::PawnAdvance    
+                });
+                advance &= (advance - 1);
+            }
+
+            uint64_t double_advance = get_pawn_double_mask(piece, all_pieces);
+            if(_turn == 'b') double_advance = flip_vertical(double_advance);
+            while(double_advance) {
+                uint64_t move = double_advance & (-double_advance);
+                ChessPosition to(find_lsb(move));
+                moves.push_back({
+                    from, to, ChessMoveFlag::Quiet | ChessMoveFlag::PawnDouble
+                });
+                double_advance &= (double_advance - 1);
+            }
+            
+            uint64_t capture = get_pawn_capture_mask(piece, opposite_color);
+            if(_turn == 'b') capture = flip_vertical(capture);
+            while(capture) {
+                uint64_t move = capture & (-capture);
+                ChessPosition to(find_lsb(move));
+                moves.push_back({
+                    from, to, ChessMoveFlag::Capture
+                });
+                capture &= (capture - 1);
+            }
+
+            uint64_t en_passant = get_pawn_en_passant_mask(piece, en_passant_mask);
+            if(_turn == 'b') en_passant = flip_vertical(en_passant);
+            while(en_passant) {
+                uint64_t move = en_passant & (-en_passant);
+                ChessPosition to(find_lsb(move));
+                moves.push_back({
+                    from, to, ChessMoveFlag::Capture | ChessMoveFlag::EnPassant
+                });
+                en_passant &= (en_passant - 1);
+            }
+            bitboard &= (bitboard - 1);
+        }
+    }
+
+    std::vector<ChessMove> ChessBoard::generate_move_list() {
+        std::vector<ChessMove> moves;
+        int start, stop;
+        if(_turn == 'w') {
+            start = 0;
+            stop = 5;
+        }
+        else {
+            start = 6;
+            stop = 11;
+        }
+        for(int i = start; i <= stop; i++) {
+            uint64_t bitboard = _bitboards[i];
+            switch(i % 6) {
+                case 0:
+                    generate_pawn_moves(bitboard, moves);
+                    break;
+                default:
+                    break;
+            }
+        }
+        return moves;
+    }
+
+    void ChessBoard::print() {
         if(_turn == 'w') std::cout << "White's turn.\n";
         if(_turn == 'b') std::cout << "Black's turn.\n";
-        std::string ranks = "87654321";
-        std::string files = "abcdefgh";
-        for(auto &r : ranks) {
-            for(auto &f : files) {
-                unsigned piece = get_at_position({f, r});
-                std::string icon = " ";
-                if(piece == ChessPieces::WhitePawn) {
+        for(int rank = 0; rank < 8; rank++) {
+            for(int file = 0; file < 8; file++) {
+                unsigned piece = get_at_coords(rank, file);
+                std::string icon = "-";
+                if(piece == ChessPiece::WhitePawn) {
                     icon = "\u2659";
                 }
-                else if(piece == ChessPieces::WhiteRook) {
+                else if(piece == ChessPiece::WhiteRook) {
                     icon = "\u2656";
                 }
-                else if(piece == ChessPieces::WhiteKnight) {
+                else if(piece == ChessPiece::WhiteKnight) {
                     icon = "\u2658";
                 }
-                else if(piece == ChessPieces::WhiteBishop) {
+                else if(piece == ChessPiece::WhiteBishop) {
                     icon = "\u2657";
                 }
-                else if(piece == ChessPieces::WhiteQueen) {
+                else if(piece == ChessPiece::WhiteQueen) {
                     icon = "\u2655";
                 }
-                else if(piece == ChessPieces::WhiteKing) {
+                else if(piece == ChessPiece::WhiteKing) {
                     icon = "\u2654";
                 }
                 
-                else if(piece == ChessPieces::BlackPawn) {
+                else if(piece == ChessPiece::BlackPawn) {
                     icon = "\u265F";
                 }
-                else if(piece == ChessPieces::BlackRook) {
+                else if(piece == ChessPiece::BlackRook) {
                     icon = "\u265C";
                 }
-                else if(piece == ChessPieces::BlackKnight) {
+                else if(piece == ChessPiece::BlackKnight) {
                     icon = "\u265E";
                 }
-                else if(piece == ChessPieces::BlackBishop) {
+                else if(piece == ChessPiece::BlackBishop) {
                     icon = "\u265D";
                 }
-                else if(piece == ChessPieces::BlackQueen) {
+                else if(piece == ChessPiece::BlackQueen) {
                     icon = "\u265B";
                 }
-                else if(piece == ChessPieces::BlackKing) {
+                else if(piece == ChessPiece::BlackKing) {
                     icon = "\u265A";
                 }
                 std::cout << icon << " ";
@@ -281,4 +365,36 @@ public:
             std::cout << "\n";
         }
     }
-};
+}
+
+int main() {
+    std::cout << "Chess Engine C++ v.1.0\n";
+    // uint64_t test_bitboard = 0;
+    
+    // int row = 4, col = 3;
+    // int shift = (row * 8) + col;
+    // row = shift / 8, col = shift % 8
+
+    // test_bitboard |= (1ULL << shift); // This is the king's bitboard
+    // std::cout << chess::find_lsb(test_bitboard) << " " << shift << "\n";
+    // chess::print_bitboard(chess::get_pawn_advance_mask(test_bitboard));
+    // chess::print_bitboard(chess::get_pawn_capture_mask(test_bitboard));
+    // chess::print_bitboard(chess::get_knight_mask(test_bitboard));
+    // chess::print_bitboard(chess::get_king_mask(test_bitboard));
+
+    std::string fen = "rnbqkbnr/pp1ppppp/8/8/2pP4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 2";
+    chess::ChessBoard b(fen);
+    std::cout << sizeof(chess::ChessBoard) << "\n";
+    std::cout << fen << "\n";
+    std::cout << b.generate_fen() << "\n";
+    auto moves = b.generate_move_list();
+    b.print();
+    for(auto move : moves) {
+        chess::ChessBoard a = b;
+        a.execute_move(move);
+        a.print();
+        std::cout << a.calculate_material() << "\n";
+    }
+    
+    return 0;
+}
