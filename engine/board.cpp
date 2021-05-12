@@ -366,35 +366,3 @@ namespace chess {
         }
     }
 }
-
-int main() {
-    std::cout << "Chess Engine C++ v.1.0\n";
-    // uint64_t test_bitboard = 0;
-    
-    // int row = 4, col = 3;
-    // int shift = (row * 8) + col;
-    // row = shift / 8, col = shift % 8
-
-    // test_bitboard |= (1ULL << shift); // This is the king's bitboard
-    // std::cout << chess::find_lsb(test_bitboard) << " " << shift << "\n";
-    // chess::print_bitboard(chess::get_pawn_advance_mask(test_bitboard));
-    // chess::print_bitboard(chess::get_pawn_capture_mask(test_bitboard));
-    // chess::print_bitboard(chess::get_knight_mask(test_bitboard));
-    // chess::print_bitboard(chess::get_king_mask(test_bitboard));
-
-    std::string fen = "rnbqkbnr/pp1ppppp/8/8/2pP4/8/PPP1PPPP/RNBQKBNR b KQkq d3 0 2";
-    chess::ChessBoard b(fen);
-    std::cout << sizeof(chess::ChessBoard) << "\n";
-    std::cout << fen << "\n";
-    std::cout << b.generate_fen() << "\n";
-    auto moves = b.generate_move_list();
-    b.print();
-    for(auto move : moves) {
-        chess::ChessBoard a = b;
-        a.execute_move(move);
-        a.print();
-        std::cout << a.calculate_material() << "\n";
-    }
-    
-    return 0;
-}
