@@ -99,6 +99,22 @@ namespace chess {
      * Get all possible en passant moves
      */
     uint64_t get_pawn_en_passant_mask(uint64_t bitboard, uint64_t en_passant);
+
+    /**
+     * Get all possible moves for the rook
+     */
+    uint64_t get_rook_mask(uint64_t bitboard, uint64_t same_color);
+
+    /**
+     * Get all possible moves for the bishop
+     */
+    uint64_t get_bishop_mask(uint64_t bitboard, uint64_t same_color);
+
+    /**
+     * Get all possible moves for the queen
+     * Simply perform bitwise OR on the rook and bishop masks
+     */
+    uint64_t get_queen_mask(uint64_t bitboard, uint64_t same_color);
 }
 
 #endif

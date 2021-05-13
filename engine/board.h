@@ -100,9 +100,11 @@ namespace chess {
         /**
          * Generate all pseudo-legal moves for each piece and add them to a move vector
          */
+        void generate_piece_moves(uint64_t bitboard, std::vector<Move> &moves, 
+                                  uint64_t(*mask_func)(uint64_t, uint64_t));
+
+        // Pawn function has special cases (ugh.)
         void generate_pawn_moves(uint64_t bitboard, std::vector<Move> &moves);
-        void generate_knight_moves(uint64_t bitboard, std::vector<Move> &moves);
-        void generate_king_moves(uint64_t bitboard, std::vector<Move> &moves);
 
         /**
          * Generate all pseudo legal moves by the current turn

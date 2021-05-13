@@ -101,4 +101,19 @@ namespace chess {
                          get_adjacent(bitboard, Direction::DownRight);
         return moves & en_passant;
     }
+
+    uint64_t get_rook_mask(uint64_t bitboard, uint64_t same_color) {
+        // TODO: Get file and rank of the rook
+        return bitboard;
+    }
+
+    uint64_t get_bishop_mask(uint64_t bitboard, uint64_t same_color) {
+        // TODO: Deal with diagonals
+        return bitboard;
+    }
+
+    uint64_t get_queen_mask(uint64_t bitboard, uint64_t same_color) {
+        // Queen has the mobility of the rook and bishop combined
+        return get_rook_mask(bitboard, same_color) | get_bishop_mask(bitboard, same_color);
+    }
 }
