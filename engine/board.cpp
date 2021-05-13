@@ -496,42 +496,8 @@ namespace chess {
             for(int file = 0; file < 8; file++) {
                 unsigned piece = get_at_coords(rank, file);
                 std::string icon = "-";
-                if(piece == Piece::WhitePawn) {
-                    icon = "\u2659";
-                }
-                else if(piece == Piece::WhiteRook) {
-                    icon = "\u2656";
-                }
-                else if(piece == Piece::WhiteKnight) {
-                    icon = "\u2658";
-                }
-                else if(piece == Piece::WhiteBishop) {
-                    icon = "\u2657";
-                }
-                else if(piece == Piece::WhiteQueen) {
-                    icon = "\u2655";
-                }
-                else if(piece == Piece::WhiteKing) {
-                    icon = "\u2654";
-                }
-                
-                else if(piece == Piece::BlackPawn) {
-                    icon = "\u265F";
-                }
-                else if(piece == Piece::BlackRook) {
-                    icon = "\u265C";
-                }
-                else if(piece == Piece::BlackKnight) {
-                    icon = "\u265E";
-                }
-                else if(piece == Piece::BlackBishop) {
-                    icon = "\u265D";
-                }
-                else if(piece == Piece::BlackQueen) {
-                    icon = "\u265B";
-                }
-                else if(piece == Piece::BlackKing) {
-                    icon = "\u265A";
+                if(piece != Piece::Empty) {
+                    icon = PieceDisplay[piece];
                 }
                 std::cout << icon << " ";
             }

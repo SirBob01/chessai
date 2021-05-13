@@ -32,6 +32,10 @@ namespace chess {
         Empty = 15
     };
     static const std::string PieceChars = "PRNBQKprnbqk";
+    static const std::string PieceDisplay[] = {
+        "\u2659", "\u2656", "\u2658", "\u2657", "\u2655", "\u2654",
+        "\u265F", "\u265C", "\u265E", "\u265D", "\u265B", "\u265A"
+    };
 
     /**
      * Calculate the material score of the board state
