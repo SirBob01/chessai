@@ -38,12 +38,8 @@ namespace chess {
     }
     
     int find_lsb(uint64_t binary) {
-        int count = 0;
-        while(binary ^ 1) {
-            binary >>= 1;
-            count++;
-        }
-        return count;
+        const uint64_t debruijn64 = 0x07EDD5E59A4E28C2;
+        return bitscan_table[((binary & -binary) * debruijn64) >> 58];
     }
 
     uint64_t shift(uint64_t binary, int shift) {
