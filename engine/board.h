@@ -187,6 +187,16 @@ namespace chess {
         std::vector<Move> get_legal_moves();
 
         /**
+         * Get the current number of halfmoves to enforce the 50-move rule
+         */
+        int get_halfmoves();
+
+        /**
+         * Get the current turn (either 'w' or 'b')
+         */
+        char get_turn();
+
+        /**
          * Print the board on the console
          */
         void print();

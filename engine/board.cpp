@@ -487,6 +487,14 @@ namespace chess {
         return _legal_moves;
     }
 
+    int Board::get_halfmoves() {
+        return _halfmoves;
+    }
+
+    char Board::get_turn() {
+        return _turn;
+    }
+
     void Board::print() {
         // Set code page to allow UTF16 characters to show (chcp 65001 on powershell)
         if(_turn == 'w') std::cout << "White's turn.\n";
