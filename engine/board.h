@@ -95,9 +95,10 @@ namespace chess {
         int _fullmoves;
 
         /**
-         * Generate all possible pawn moves and append them to a move vector
+         * Generate all pseudo-legal moves for each piece and add them to a move vector
          */
         void generate_pawn_moves(uint64_t bitboard, std::vector<ChessMove> &moves);
+        void generate_knight_moves(uint64_t bitboard, std::vector<ChessMove> &moves);
 
     public:
         ChessBoard(std::string fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
