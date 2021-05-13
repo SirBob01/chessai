@@ -63,7 +63,6 @@ namespace chess {
         }
         _halfmoves = stoi(fields[4]);
         _fullmoves = stoi(fields[5]);
-        generate_move_list();
     }
 
     std::string Board::generate_fen() {
@@ -346,9 +345,7 @@ namespace chess {
         }
     }
 
-    void Board::generate_move_list() {
-        // TODO: Only generate LEGAL moves
-        // i.e., any move made CANNOT put the king in check
+    std::vector<Move> Board::generate_pseudo_legal_moves() {
         int start;
         if(_turn == 'w') {
             start = 0;
@@ -356,23 +353,54 @@ namespace chess {
         else {
             start = 6;
         }
+        std::vector<Move> pseudo_legal;
         for(int i = start; i < start + 6; i++) {
             uint64_t bitboard = _bitboards[i];
             switch(i % 6) {
                 // Relative index ordering in bitboard array is the same
                 // for both white and black pieces
                 case Piece::WhitePawn:
-                    generate_pawn_moves(bitboard, _legal_moves);
+                    generate_pawn_moves(bitboard, pseudo_legal);
                     break;
                 case Piece::WhiteKnight:
-                    generate_knight_moves(bitboard, _legal_moves);
+                    generate_knight_moves(bitboard, pseudo_legal);
                     break;
                 case Piece::WhiteKing:
-                    generate_king_moves(bitboard, _legal_moves);
+                    generate_king_moves(bitboard, pseudo_legal);
                     break;
                 default:
                     break;
             }
+        }
+        return pseudo_legal;
+    }
+
+    bool Board::is_in_check() {
+        // Did the opposing turn (previous move) leave itself in check?
+        // Generate pseudo legal moves and test against opposing king
+        std::vector<Move> pseudo_legal = generate_pseudo_legal_moves();
+        uint64_t target_king;
+        if(_turn == 'b') target_king = _bitboards[Piece::WhiteKing];
+        else target_king = _bitboards[Piece::BlackKing];
+
+        for(auto &move : pseudo_legal) {
+            uint64_t move_mask = 1ULL << move.to.shift;
+            if((move_mask ^ target_king) == 0) return false;
+        }
+        return true;
+    }
+
+    void Board::generate() {
+        // Filter out illegal moves by executing move in board copy
+        // Move is invalid if turn puts its own king in check
+        std::vector<Move> pseudo_legal = generate_pseudo_legal_moves();
+        for(auto &move : pseudo_legal) {
+            Board next_state = *this;
+            next_state.execute_move(move);
+            if(!next_state.is_in_check()) {
+                continue;
+            }
+            _legal_moves.push_back(move);
         }
     }
 

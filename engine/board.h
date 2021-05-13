@@ -103,20 +103,29 @@ namespace chess {
         void generate_knight_moves(uint64_t bitboard, std::vector<Move> &moves);
         void generate_king_moves(uint64_t bitboard, std::vector<Move> &moves);
 
+        /**
+         * Generate all pseudo legal moves by the current turn
+         */
+        std::vector<Move> generate_pseudo_legal_moves();
 
         /**
-         * Generate a move given from and to positions
+         * Test if the opposing king is in check
+         */
+        bool is_in_check();
+
+    public:
+        Board(std::string fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        Board(Board &other) : Board(other.generate_fen()) {};
+
+        /**
+         * Generate all legal moves
          * If move list is empty, then player is in checkmate
          * Algorithm for generating legal moves from pseudo legal?
          * - Create a copy of the board 
          * - Execute the move
          * - Make sure king is not in check at the start
          */
-        void generate_move_list();
-
-    public:
-        Board(std::string fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-        Board(Board &other) : Board(other.generate_fen()) {};
+        void generate();
 
         /**
          * Generate a FEN string of the current state for serialization
@@ -164,7 +173,6 @@ namespace chess {
          * Used to validate move positions from user input
          */
         Move create_move(Position from, Position to); 
-
 
         /**
          * Get all legal moves available to the current player
