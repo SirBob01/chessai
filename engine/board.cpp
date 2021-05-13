@@ -303,6 +303,48 @@ namespace chess {
         }
     }
 
+    void ChessBoard::generate_king_moves(uint64_t bitboard, std::vector<ChessMove> &moves) {
+        uint64_t same_color, opposite_color;
+        if(_turn == 'w') {
+            same_color = _bitboards[ChessPiece::White];
+            opposite_color = _bitboards[ChessPiece::Black];
+        }
+        else {
+            same_color = flip_vertical(_bitboards[ChessPiece::Black]);
+            opposite_color = flip_vertical(_bitboards[ChessPiece::White]);
+        }
+
+        while(bitboard) {
+            uint64_t piece = bitboard & (-bitboard);
+            ChessPosition from = ChessPosition(find_lsb(piece));
+            if(_turn == 'b') piece = flip_vertical(piece);
+            
+            uint64_t move_bits = get_king_mask(piece, same_color);
+            uint64_t capture = move_bits & opposite_color;
+            uint64_t advance = move_bits & ~(opposite_color | same_color);
+
+            if(_turn == 'b') {
+                capture = flip_vertical(capture);
+                advance = flip_vertical(advance);
+            }
+
+            while(advance) {
+                uint64_t move = advance &(-advance);
+                ChessPosition to = ChessPosition(find_lsb(move));
+                moves.push_back({from, to, ChessMoveFlag::Quiet});
+                advance &= (advance - 1);
+            }
+
+            while(capture) {
+                uint64_t move = capture & (-capture);
+                ChessPosition to = ChessPosition(find_lsb(move));
+                moves.push_back({from, to, ChessMoveFlag::Capture});
+                capture &= (capture - 1);
+            }
+            bitboard &= (bitboard - 1);
+        }
+    }
+
     int ChessBoard::calculate_material() {
         int total = 0;
         for(int i = 0; i < 12; i++) {
@@ -446,6 +488,10 @@ namespace chess {
                     break;
                 case ChessPiece::WhiteKnight:
                     generate_knight_moves(bitboard, moves);
+                    break;
+                case ChessPiece::WhiteKing:
+                    generate_king_moves(bitboard, moves);
+                    break;
                 default:
                     break;
             }

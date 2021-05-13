@@ -99,6 +99,7 @@ namespace chess {
          */
         void generate_pawn_moves(uint64_t bitboard, std::vector<ChessMove> &moves);
         void generate_knight_moves(uint64_t bitboard, std::vector<ChessMove> &moves);
+        void generate_king_moves(uint64_t bitboard, std::vector<ChessMove> &moves);
 
     public:
         ChessBoard(std::string fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
