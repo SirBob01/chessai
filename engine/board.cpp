@@ -63,6 +63,7 @@ namespace chess {
         }
         _halfmoves = stoi(fields[4]);
         _fullmoves = stoi(fields[5]);
+        generate_move_list();
     }
 
     std::string ChessBoard::generate_fen() {
@@ -345,6 +346,36 @@ namespace chess {
         }
     }
 
+    void ChessBoard::generate_move_list() {
+        // TODO: Only generate LEGAL moves
+        // i.e., any move made CANNOT put the king in check
+        int start;
+        if(_turn == 'w') {
+            start = 0;
+        }
+        else {
+            start = 6;
+        }
+        for(int i = start; i < start + 6; i++) {
+            uint64_t bitboard = _bitboards[i];
+            switch(i % 6) {
+                // Relative index ordering in bitboard array is the same
+                // for both white and black pieces
+                case ChessPiece::WhitePawn:
+                    generate_pawn_moves(bitboard, _legal_moves);
+                    break;
+                case ChessPiece::WhiteKnight:
+                    generate_knight_moves(bitboard, _legal_moves);
+                    break;
+                case ChessPiece::WhiteKing:
+                    generate_king_moves(bitboard, _legal_moves);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+
     int ChessBoard::calculate_material() {
         int total = 0;
         for(int i = 0; i < 12; i++) {
@@ -467,41 +498,8 @@ namespace chess {
         }
     }
 
-    std::vector<ChessMove> ChessBoard::generate_move_list() {
-        // TODO: Only generate LEGAL moves
-        // i.e., any move made CANNOT put the king in check
-        std::vector<ChessMove> moves;
-        int start;
-        if(_turn == 'w') {
-            start = 0;
-        }
-        else {
-            start = 6;
-        }
-        for(int i = start; i < start + 6; i++) {
-            uint64_t bitboard = _bitboards[i];
-            switch(i % 6) {
-                // Relative index ordering in bitboard array is the same
-                // for both white and black pieces
-                case ChessPiece::WhitePawn:
-                    generate_pawn_moves(bitboard, moves);
-                    break;
-                case ChessPiece::WhiteKnight:
-                    generate_knight_moves(bitboard, moves);
-                    break;
-                case ChessPiece::WhiteKing:
-                    generate_king_moves(bitboard, moves);
-                    break;
-                default:
-                    break;
-            }
-        }
-        return moves;
-    }
-
     ChessMove ChessBoard::create_move(ChessPosition from, ChessPosition to) {
-        std::vector<ChessMove> valid_moves = generate_move_list();
-        for(auto &move : valid_moves) {
+        for(auto &move : _legal_moves) {
             if(move.from.shift == from.shift && move.to.shift == to.shift) {
                 return move;
             }
@@ -511,6 +509,10 @@ namespace chess {
             ChessPosition(), 
             ChessMoveFlag::Invalid
         };
+    }
+
+    std::vector<ChessMove> ChessBoard::get_legal_moves() {
+        return _legal_moves;
     }
 
     void ChessBoard::print() {

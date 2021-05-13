@@ -94,12 +94,21 @@ namespace chess {
         int _halfmoves;
         int _fullmoves;
 
+        std::vector<ChessMove> _legal_moves;
+
         /**
          * Generate all pseudo-legal moves for each piece and add them to a move vector
          */
         void generate_pawn_moves(uint64_t bitboard, std::vector<ChessMove> &moves);
         void generate_knight_moves(uint64_t bitboard, std::vector<ChessMove> &moves);
         void generate_king_moves(uint64_t bitboard, std::vector<ChessMove> &moves);
+
+
+        /**
+         * Generate a move given from and to positions
+         * If move list is empty, then player is in checkmate
+         */
+        void generate_move_list();
 
     public:
         ChessBoard(std::string fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -152,11 +161,11 @@ namespace chess {
          */
         ChessMove create_move(ChessPosition from, ChessPosition to); 
 
+
         /**
-         * Generate a move given from and to positions
-         * If move list is empty, then player is in checkmate
+         * Get all legal moves available to the current player
          */
-        std::vector<ChessMove> generate_move_list();
+        std::vector<ChessMove> get_legal_moves();
 
         /**
          * Print the board on the console
