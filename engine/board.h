@@ -9,9 +9,9 @@
 
 namespace chess {
     /**
-     *  Chess pieces are uniquely indexed on bitboard and piece weight arrays
+     *   pieces are uniquely indexed on bitboard and piece weight arrays
      */
-    enum ChessPiece {
+    enum Piece {
         WhitePawn   = 0,
         WhiteRook   = 1,
         WhiteKnight = 2,
@@ -43,12 +43,12 @@ namespace chess {
     /**
      * A position on the board represented by a bitshift value (0 - 63)
      */
-    struct ChessPosition {
+    struct Position {
         int shift;
 
-        ChessPosition() : shift(-1) {}
-        ChessPosition(int shift) : shift(shift) {}
-        ChessPosition(char file, char rank);
+        Position() : shift(-1) {}
+        Position(int shift) : shift(shift) {}
+        Position(char file, char rank);
 
         std::string standard_notation();
     };
@@ -56,7 +56,7 @@ namespace chess {
     /**
      * Flags that describe a chess move
      */
-    enum ChessMoveFlag {
+    enum MoveFlag {
         Quiet       = 0,
         Capture     = 1 << 0,
         EnPassant   = 1 << 1,
@@ -74,45 +74,49 @@ namespace chess {
     /**
      * Container of a chess move
      */
-    struct ChessMove {
-        ChessPosition from;
-        ChessPosition to;
-        unsigned flags = ChessMoveFlag::Quiet;
+    struct Move {
+        Position from;
+        Position to;
+        unsigned flags = MoveFlag::Quiet;
     };
 
 
     /**
      * Represents a chess board's state
      */
-    class ChessBoard {
+    class Board {
         // Represent the positions of each of the 12 pieces on the board
         // Extra 2 bitboards represent white/black pieces in general
         uint64_t _bitboards[14] = {0};
         uint8_t _turn;            // w or b
         uint8_t _castling_rights; // qkQK (from most to least significant bit)
-        ChessPosition _en_passant_target;
+        Position _en_passant_target;
         int _halfmoves;
         int _fullmoves;
 
-        std::vector<ChessMove> _legal_moves;
+        std::vector<Move> _legal_moves;
 
         /**
          * Generate all pseudo-legal moves for each piece and add them to a move vector
          */
-        void generate_pawn_moves(uint64_t bitboard, std::vector<ChessMove> &moves);
-        void generate_knight_moves(uint64_t bitboard, std::vector<ChessMove> &moves);
-        void generate_king_moves(uint64_t bitboard, std::vector<ChessMove> &moves);
+        void generate_pawn_moves(uint64_t bitboard, std::vector<Move> &moves);
+        void generate_knight_moves(uint64_t bitboard, std::vector<Move> &moves);
+        void generate_king_moves(uint64_t bitboard, std::vector<Move> &moves);
 
 
         /**
          * Generate a move given from and to positions
          * If move list is empty, then player is in checkmate
+         * Algorithm for generating legal moves from pseudo legal?
+         * - Create a copy of the board 
+         * - Execute the move
+         * - Make sure king is not in check at the start
          */
         void generate_move_list();
 
     public:
-        ChessBoard(std::string fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-        ChessBoard(ChessBoard &other) : ChessBoard(other.generate_fen()) {};
+        Board(std::string fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        Board(Board &other) : Board(other.generate_fen()) {};
 
         /**
          * Generate a FEN string of the current state for serialization
@@ -128,44 +132,44 @@ namespace chess {
         /**
          * Get a piece on the board
          */
-        ChessPiece get_at(ChessPosition pos);
+        Piece get_at(Position pos);
 
         /**
          * Set a piece on the board
          */
-        void set_at(ChessPosition pos, ChessPiece piece);
+        void set_at(Position pos, Piece piece);
 
         /**
          * Clear a square on the board
          */
-        void clear_at(ChessPosition pos);
+        void clear_at(Position pos);
 
         /**
          * Get the piece at a coordinate
          */
-        ChessPiece get_at_coords(int row, int col);
+        Piece get_at_coords(int row, int col);
 
         /**
          * Set the piece at a coordinate
          */
-        void set_at_coords(int row, int col, ChessPiece piece);
+        void set_at_coords(int row, int col, Piece piece);
 
         /**
          * Execute a move and update internal state
          */
-        void execute_move(ChessMove move);
+        void execute_move(Move move);
 
         /**
          * Generate a valid chess move given shift positions
          * Used to validate move positions from user input
          */
-        ChessMove create_move(ChessPosition from, ChessPosition to); 
+        Move create_move(Position from, Position to); 
 
 
         /**
          * Get all legal moves available to the current player
          */
-        std::vector<ChessMove> get_legal_moves();
+        std::vector<Move> get_legal_moves();
 
         /**
          * Print the board on the console
