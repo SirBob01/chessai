@@ -336,6 +336,7 @@ namespace chess {
     void Board::generate() {
         // Filter out illegal moves by executing move in board copy
         // Move is invalid if turn puts its own king in check
+        _legal_moves.clear();
         std::vector<Move> pseudo_legal = generate_pseudo_legal_moves();
         for(auto &move : pseudo_legal) {
             Board next_state = *this;
