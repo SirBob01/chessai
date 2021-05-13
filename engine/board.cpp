@@ -30,19 +30,7 @@ namespace chess {
             }
             else {
                 Position pos = Position(row * 8 + col);
-                if(c == 'p') set_at(pos, Piece::BlackPawn);
-                else if(c == 'n') set_at(pos, Piece::BlackKnight);
-                else if(c == 'b') set_at(pos, Piece::BlackBishop);
-                else if(c == 'r') set_at(pos, Piece::BlackRook);
-                else if(c == 'q') set_at(pos, Piece::BlackQueen);
-                else if(c == 'k') set_at(pos, Piece::BlackKing);
-
-                else if(c == 'P') set_at(pos, Piece::WhitePawn);
-                else if(c == 'N') set_at(pos, Piece::WhiteKnight);
-                else if(c == 'B') set_at(pos, Piece::WhiteBishop);
-                else if(c == 'R') set_at(pos, Piece::WhiteRook);
-                else if(c == 'Q') set_at(pos, Piece::WhiteQueen);
-                else if(c == 'K') set_at(pos, Piece::WhiteKing);
+                set_at(pos, static_cast<Piece>(PieceChars.find(c)));
                 col++;
             }
         }
@@ -76,19 +64,7 @@ namespace chess {
                         fen += counter + '0';
                         counter = 0;
                     }
-                    if(piece == Piece::BlackPawn) fen += 'p';
-                    else if(piece == Piece::BlackKnight) fen += 'n';
-                    else if(piece == Piece::BlackBishop) fen += 'b';
-                    else if(piece == Piece::BlackRook) fen += 'r';
-                    else if(piece == Piece::BlackQueen) fen += 'q';
-                    else if(piece == Piece::BlackKing) fen += 'k';
-                    
-                    else if(piece == Piece::WhitePawn) fen += 'P';
-                    else if(piece == Piece::WhiteKnight) fen += 'N';
-                    else if(piece == Piece::WhiteBishop) fen += 'B';
-                    else if(piece == Piece::WhiteRook) fen += 'R';
-                    else if(piece == Piece::WhiteQueen) fen += 'Q';
-                    else if(piece == Piece::WhiteKing) fen += 'K';
+                    fen += PieceChars[piece];
                 }
                 else {
                     counter += 1;

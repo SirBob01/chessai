@@ -31,6 +31,7 @@ namespace chess {
         Black = 13,
         Empty = 15
     };
+    static const std::string PieceChars = "PRNBQKprnbqk";
 
     /**
      * Calculate the material score of the board state
