@@ -207,10 +207,10 @@ namespace chess {
     /**
      * Get the all possible positions of the pawn if capturing (either en passant or regular)
      */
-    inline uint64_t get_pawn_capture_mask(uint64_t bitboard, uint64_t opposite_color) {
+    inline uint64_t get_pawn_capture_mask(uint64_t bitboard) {
         uint64_t moves = get_adjacent(bitboard, Direction::DownLeft) |
                          get_adjacent(bitboard, Direction::DownRight);
-        return moves & opposite_color;
+        return moves;
     }
 
     /**
