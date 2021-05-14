@@ -144,6 +144,23 @@ namespace chess {
     }
 
     /**
+     * Test if pieces on bitboards A, B, and C are colinear on the 8 directions
+     */
+    inline bool is_aligned(uint64_t A, uint64_t B, uint64_t C) {
+        const int shift = find_lsb(A);
+        const uint64_t masks[4] = {
+            get_diagonal_mask(shift),
+            get_antidiag_mask(shift),
+            0xFF00000000000000ULL >> (56 - 8 * (shift/8)),
+            0x0101010101010101ULL << (7 & shift)
+        };
+        return !((masks[0] | C) ^ (masks[0] | B)) ||
+               !((masks[1] | C) ^ (masks[1] | B)) ||
+               !((masks[2] | C) ^ (masks[2] | B)) ||
+               !((masks[3] | C) ^ (masks[3] | B));
+    }
+
+    /**
      * Get the all possible directions the king can move to from its current position
      */
     inline uint64_t get_king_mask(uint64_t bitboard, uint64_t same_color) {
