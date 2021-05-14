@@ -148,16 +148,14 @@ namespace chess {
      */
     inline bool is_aligned(uint64_t A, uint64_t B, uint64_t C) {
         const int shift = find_lsb(A);
-        const uint64_t masks[4] = {
-            get_diagonal_mask(shift),
-            get_antidiag_mask(shift),
-            0xFF00000000000000ULL >> (56 - 8 * (shift/8)),
-            0x0101010101010101ULL << (7 & shift)
-        };
-        return !((masks[0] | C) ^ (masks[0] | B)) ||
-               !((masks[1] | C) ^ (masks[1] | B)) ||
-               !((masks[2] | C) ^ (masks[2] | B)) ||
-               !((masks[3] | C) ^ (masks[3] | B));
+        const uint64_t mask1 = get_diagonal_mask(shift);
+        const uint64_t mask2 = get_antidiag_mask(shift);
+        const uint64_t mask3 = 0xFF00000000000000ULL >> (56 - 8 * (shift/8));
+        const uint64_t mask4 = 0x0101010101010101ULL << (7 & shift);
+        return !((mask1 | C) ^ (mask1 | B)) ||
+               !((mask2 | C) ^ (mask2 | B)) ||
+               !((mask3 | C) ^ (mask3 | B)) ||
+               !((mask4 | C) ^ (mask4 | B));
     }
 
     /**
