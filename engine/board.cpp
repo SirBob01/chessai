@@ -402,24 +402,25 @@ namespace chess {
             else if(piece == Piece::WhiteKing) {
                 attack_board |= get_king_mask(bitboard, same_color);
             }
-
-            // Sliding pieces must be handled individually
-            while(bitboard) {
-                uint64_t unit = bitboard & (-bitboard);
-                switch(piece) {
-                    case Piece::WhiteBishop:
-                        attack_board |= get_bishop_mask(unit, same_color, opposite_color);
-                        break;
-                    case Piece::WhiteRook:
-                        attack_board |= get_rook_mask(unit, same_color, opposite_color);
-                        break;
-                    case Piece::WhiteQueen:
-                        attack_board |= get_queen_mask(unit, same_color, opposite_color);
-                        break;
-                    default:
-                        break;
+            else {
+                // Sliding pieces must be handled individually
+                while(bitboard) {
+                    uint64_t unit = bitboard & (-bitboard);
+                    switch(piece) {
+                        case Piece::WhiteBishop:
+                            attack_board |= get_bishop_mask(unit, same_color, opposite_color);
+                            break;
+                        case Piece::WhiteRook:
+                            attack_board |= get_rook_mask(unit, same_color, opposite_color);
+                            break;
+                        case Piece::WhiteQueen:
+                            attack_board |= get_queen_mask(unit, same_color, opposite_color);
+                            break;
+                        default:
+                            break;
+                    }
+                    bitboard &= (bitboard-1);
                 }
-                bitboard &= (bitboard-1);
             }
         }
         return attack_board;
