@@ -15,6 +15,10 @@ namespace chess {
         return std::string({field, rank});
     }
 
+    uint64_t Position::get_mask() {
+        return 1ULL << shift;
+    }
+
     Board::Board(std::string fen_string) {
         std::vector<std::string> fields = chess::util::tokenize(fen_string, ' ');
         
@@ -178,7 +182,7 @@ namespace chess {
         uint64_t all_pieces = _bitboards[Piece::White] | _bitboards[Piece::Black];
         uint64_t opposite_color, en_passant_mask = 0;
         if(_en_passant_target.shift != -1) {
-            en_passant_mask = 1ULL << _en_passant_target.shift;
+            en_passant_mask = _en_passant_target.get_mask();
         }
         if(_turn == 'w') {
             opposite_color = _bitboards[Piece::Black];
@@ -358,7 +362,7 @@ namespace chess {
         else target_king = _bitboards[Piece::BlackKing];
 
         for(auto &move : pseudo_legal) {
-            uint64_t move_mask = 1ULL << move.to.shift;
+            uint64_t move_mask = move.to.get_mask();
             if((move_mask ^ target_king) == 0) return false;
         }
         return true;
@@ -403,7 +407,7 @@ namespace chess {
 
     void Board::set_at(Position pos, Piece piece) {
         clear_at(pos);
-        uint64_t mask = 1ULL << pos.shift;
+        uint64_t mask = pos.get_mask();
         if(piece < 6) {
             _bitboards[Piece::White] |= mask;
         }
@@ -415,7 +419,7 @@ namespace chess {
 
     void Board::clear_at(Position pos) {
         // Clear both white and black bitboards
-        uint64_t mask = ~(1ULL << pos.shift);
+        uint64_t mask = ~(pos.get_mask());
         _bitboards[12] &= mask;
         _bitboards[13] &= mask;
 

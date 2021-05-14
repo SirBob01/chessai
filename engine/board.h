@@ -56,6 +56,7 @@ namespace chess {
         Position(char file, char rank);
 
         std::string standard_notation();
+        uint64_t get_mask();
     };
 
     /**
