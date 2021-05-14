@@ -4,7 +4,7 @@ namespace chess {
     void print_bitboard(uint64_t bitboard) {
         std::bitset<64> bitarray(bitboard);
         for(int i = 0; i < 64; i++) {
-            std::cout << bitarray[i];
+            std::cout << (bitarray[i] ? "o " : ". ");
             if((i+1)%8 == 0) std::cout << "\n";
         }
         std::cout << "\n";
@@ -15,34 +15,28 @@ namespace chess {
     }
 
     uint64_t flip_horizontal(uint64_t bitboard) {
-        const uint64_t k1 = 0x5555555555555555;
-        const uint64_t k2 = 0x3333333333333333;
-        const uint64_t k4 = 0x0f0f0f0f0f0f0f0f;
-        bitboard = ((bitboard >> 1) & k1) +  2*(bitboard & k1);
-        bitboard = ((bitboard >> 2) & k2) +  4*(bitboard & k2);
-        bitboard = ((bitboard >> 4) & k4) + 16*(bitboard & k4);
+        bitboard = ((bitboard >> 1) & horflip_k[0]) +  2*(bitboard & horflip_k[0]);
+        bitboard = ((bitboard >> 2) & horflip_k[1]) +  4*(bitboard & horflip_k[1]);
+        bitboard = ((bitboard >> 4) & horflip_k[2]) + 16*(bitboard & horflip_k[2]);
         return bitboard;
     }
     
     int find_lsb(uint64_t binary) {
-        const uint64_t debruijn64 = 0x07EDD5E59A4E28C2;
         return bitscan_table[((binary & -binary) * debruijn64) >> 58];
     }
 
     uint64_t get_diagonal_mask(int shift) {
-        const uint64_t maindia = 0x8040201008040201;
-        int diag =8*(shift & 7) - (shift & 56);
+        int diag = 8*(shift & 7) - (shift & 56);
         int nort = -diag & ( diag >> 31);
         int sout =  diag & (-diag >> 31);
-        return (maindia >> sout) << nort;
+        return (main_diagonal >> sout) << nort;
     }
 
     uint64_t get_antidiag_mask(int shift) {
-        const uint64_t maindia = 0x0102040810204080;
         int diag = 56 - 8*(shift & 7) - (shift & 56);
         int nort = -diag & ( diag >> 31);
         int sout =  diag & (-diag >> 31);
-        return (maindia >> sout) << nort;
+        return (anti_diagnoal >> sout) << nort;
     }
 
     uint64_t shift(uint64_t binary, int shift) {
@@ -85,7 +79,6 @@ namespace chess {
     uint64_t get_pawn_double_mask(uint64_t bitboard, uint64_t all_pieces) {
         // Move twice, assuming both cells are clear
         // Only move if target square is rank 4
-        uint64_t rank4 = 0x00000000FF000000;
         return get_pawn_advance_mask(get_pawn_advance_mask(bitboard, all_pieces), all_pieces) & rank4;
     }
 
@@ -102,7 +95,7 @@ namespace chess {
     }
 
     uint64_t get_ray_attack(uint64_t bitboard, uint64_t occupied) {
-        return occupied ^= (occupied - 2 * bitboard);
+        return occupied ^ (occupied - 2 * bitboard);
     }
 
     uint64_t get_rook_mask(uint64_t bitboard, uint64_t same_color, uint64_t opposite_color) {

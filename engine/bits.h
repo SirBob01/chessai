@@ -23,12 +23,12 @@ namespace chess {
     /** 
      * Values for calculating adjacent positions using bitwise operations
      */
-    static const int direction_shift[8] = {9, 1, -7, -8, -9, -1, 7, 8};
+    constexpr int direction_shift[8] = {9, 1, -7, -8, -9, -1, 7, 8};
 
     /**
      * Constant bitmasks to eliminate overflowing bits during shift operations
      */
-    static const uint64_t wrap_bitmasks[8] = {
+    constexpr uint64_t wrap_bitmasks[8] = {
         0xfefefefefefefe00,
         0xfefefefefefefefe,
         0x00fefefefefefefe,
@@ -42,7 +42,8 @@ namespace chess {
     /**
      * Bit scan table for fetching the index of the least significant bit
      */
-    static const int bitscan_table[64] = {
+    constexpr uint64_t debruijn64 = 0x07EDD5E59A4E28C2;
+    constexpr int bitscan_table[64] = {
         63,  0, 58,  1, 59, 47, 53,  2,
         60, 39, 48, 27, 54, 33, 42,  3,
         61, 51, 37, 40, 49, 18, 28, 20,
@@ -52,6 +53,23 @@ namespace chess {
         56, 45, 25, 31, 35, 16,  9, 12,
         44, 24, 15,  8, 23,  7,  6,  5
     };
+
+    /**
+     * Horizontal bitboard flip constants
+     */
+    constexpr uint64_t horflip_k[3] = {
+        0x5555555555555555,
+        0x3333333333333333,
+        0x0f0f0f0f0f0f0f0f
+    };
+
+    /**
+     * Bitmask constants
+     */
+    constexpr uint64_t rank4 = 0x00000000FF000000;
+    constexpr uint64_t end_ranks = 0xFF000000000000FF;
+    constexpr uint64_t main_diagonal = 0x8040201008040201;
+    constexpr uint64_t anti_diagnoal = 0x0102040810204080;
 
     /**
      * Print a bitboard (8 bits per row)

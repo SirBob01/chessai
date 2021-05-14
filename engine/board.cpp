@@ -175,7 +175,6 @@ namespace chess {
     }
 
     void Board::generate_pawn_moves(uint64_t bitboard, std::vector<Move> &moves) {
-        uint64_t final_ranks = 0xFF000000000000FF;
         uint64_t all_pieces = _bitboards[Piece::White] | _bitboards[Piece::Black];
         uint64_t opposite_color, en_passant_mask = 0;
         if(_en_passant_target.shift != -1) {
@@ -202,7 +201,7 @@ namespace chess {
                 uint64_t move = advance & (-advance);
                 unsigned flags = MoveFlag::Quiet | MoveFlag::PawnAdvance;
                 Position to(find_lsb(move));
-                if(move & final_ranks) {
+                if(move & end_ranks) {
                     moves.push_back({
                         from, to, flags | MoveFlag::QueenPromo
                     });
@@ -230,7 +229,7 @@ namespace chess {
                 uint64_t move = double_advance & (-double_advance);
                 unsigned flags = MoveFlag::Quiet | MoveFlag::PawnDouble;
                 Position to(find_lsb(move));
-                if(move & final_ranks) {
+                if(move & end_ranks) {
                     moves.push_back({
                         from, to, flags | MoveFlag::QueenPromo
                     });
@@ -258,7 +257,7 @@ namespace chess {
                 uint64_t move = capture & (-capture);
                 unsigned flags = MoveFlag::Capture;
                 Position to(find_lsb(move));
-                if(move & final_ranks) {
+                if(move & end_ranks) {
                     moves.push_back({
                         from, to, flags | MoveFlag::QueenPromo
                     });
@@ -286,7 +285,7 @@ namespace chess {
                 uint64_t move = en_passant & (-en_passant);
                 unsigned flags = MoveFlag::Capture | MoveFlag::EnPassant;
                 Position to(find_lsb(move));
-                if(move & final_ranks) {
+                if(move & end_ranks) {
                     moves.push_back({
                         from, to, flags | MoveFlag::QueenPromo
                     });
