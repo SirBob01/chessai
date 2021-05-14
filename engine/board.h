@@ -132,10 +132,10 @@ namespace chess {
         /**
          * Generate all legal moves
          * If move list is empty, then player is in checkmate
-         * Algorithm for generating legal moves from pseudo legal?
-         * - Create a copy of the board 
-         * - Execute the move
-         * - Make sure king is not in check at the start
+         * TODO: Algorithm for generating legal moves from pseudo legal?
+         * - If king is the moving piece, make sure destination square is not an attack target
+         * - If en passant, execute move first and see if it results in a check (pretty rare occurrency anyhow)
+         * - If non-king piece, ensure to and from pieces are aligned with king OR piece is not pinned
          */
         void generate();
 
