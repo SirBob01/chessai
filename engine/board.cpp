@@ -107,23 +107,55 @@ namespace chess {
             opposite_color = _bitboards[Piece::Black];
         }
         else {
-            same_color = flip_vertical(_bitboards[Piece::Black]);
-            opposite_color = flip_vertical(_bitboards[Piece::White]);
+            same_color = _bitboards[Piece::Black];
+            opposite_color = _bitboards[Piece::White];
         }
+        uint64_t empty_mask = ~(opposite_color | same_color);
 
         while(bitboard) {
             uint64_t piece = bitboard & (-bitboard);
             Position from = Position(find_lsb(piece));
-            if(_turn == 'b') piece = flip_vertical(piece);
             
             uint64_t move_bits = mask_func(piece, same_color);
             uint64_t capture = move_bits & opposite_color;
-            uint64_t advance = move_bits & ~(opposite_color | same_color);
+            uint64_t advance = move_bits & empty_mask;
 
-            if(_turn == 'b') {
-                capture = flip_vertical(capture);
-                advance = flip_vertical(advance);
+            while(advance) {
+                uint64_t move = advance &(-advance);
+                Position to = Position(find_lsb(move));
+                moves.push_back({from, to, MoveFlag::Quiet});
+                advance &= (advance - 1);
             }
+
+            while(capture) {
+                uint64_t move = capture & (-capture);
+                Position to = Position(find_lsb(move));
+                moves.push_back({from, to, MoveFlag::Capture});
+                capture &= (capture - 1);
+            }
+            bitboard &= (bitboard - 1);
+        }
+    }
+
+    void Board::generate_slider_moves(uint64_t bitboard, std::vector<Move> &moves, uint64_t(*mask_func)(uint64_t, uint64_t, uint64_t)) {
+        uint64_t same_color, opposite_color;
+        if(_turn == 'w') {
+            same_color = _bitboards[Piece::White];
+            opposite_color = _bitboards[Piece::Black];
+        }
+        else {
+            same_color = _bitboards[Piece::Black];
+            opposite_color = _bitboards[Piece::White];
+        }
+        uint64_t empty_mask = ~(opposite_color | same_color);
+
+        while(bitboard) {
+            uint64_t piece = bitboard & (-bitboard);
+            Position from = Position(find_lsb(piece));
+
+            uint64_t move_bits = mask_func(piece, same_color, opposite_color);
+            uint64_t capture = move_bits & opposite_color;
+            uint64_t advance = move_bits & empty_mask;
 
             while(advance) {
                 uint64_t move = advance &(-advance);
@@ -303,13 +335,13 @@ namespace chess {
                     generate_piece_moves(bitboard, pseudo_legal, get_king_mask);
                     break;
                 case Piece::WhiteBishop:
-                    generate_piece_moves(bitboard, pseudo_legal, get_bishop_mask);
+                    generate_slider_moves(bitboard, pseudo_legal, get_bishop_mask);
                     break;
                 case Piece::WhiteRook:
-                    generate_piece_moves(bitboard, pseudo_legal, get_rook_mask);
+                    generate_slider_moves(bitboard, pseudo_legal, get_rook_mask);
                     break;
                 case Piece::WhiteQueen:
-                    generate_piece_moves(bitboard, pseudo_legal, get_queen_mask);
+                    generate_slider_moves(bitboard, pseudo_legal, get_queen_mask);
                     break;
                 default:
                     break;

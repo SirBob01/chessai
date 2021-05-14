@@ -75,6 +75,16 @@ namespace chess {
     int find_lsb(uint64_t binary);
 
     /**
+     * Get the diagonal from the current bit position
+     */
+    uint64_t get_diagonal_mask(int shift);
+
+    /**
+     * Get the antidiagonal from the current bit position
+     */
+    uint64_t get_antidiag_mask(int shift);
+
+    /**
      * Shift a binary string by an arbitrary amount, negative shifts are right shifts
      */ 
     uint64_t shift(uint64_t binary, int shift);
@@ -115,20 +125,26 @@ namespace chess {
     uint64_t get_pawn_en_passant_mask(uint64_t bitboard, uint64_t en_passant);
 
     /**
+     * For sliding pieces and a set of blockers, find the valid movement bits
+     * Only works for positive rays, must reverse the bits to work with negative rays
+     */
+    uint64_t get_ray_attack(uint64_t bitboard, uint64_t occupied);
+
+    /**
      * Get all possible moves for the rook
      */
-    uint64_t get_rook_mask(uint64_t bitboard, uint64_t same_color);
+    uint64_t get_rook_mask(uint64_t bitboard, uint64_t same_color, uint64_t opposite_color);
 
     /**
      * Get all possible moves for the bishop
      */
-    uint64_t get_bishop_mask(uint64_t bitboard, uint64_t same_color);
+    uint64_t get_bishop_mask(uint64_t bitboard, uint64_t same_color, uint64_t opposite_color);
 
     /**
      * Get all possible moves for the queen
      * Simply perform bitwise OR on the rook and bishop masks
      */
-    uint64_t get_queen_mask(uint64_t bitboard, uint64_t same_color);
+    uint64_t get_queen_mask(uint64_t bitboard, uint64_t same_color, uint64_t opposite_color);
 }
 
 #endif

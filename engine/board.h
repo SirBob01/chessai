@@ -107,6 +107,10 @@ namespace chess {
         void generate_piece_moves(uint64_t bitboard, std::vector<Move> &moves, 
                                   uint64_t(*mask_func)(uint64_t, uint64_t));
 
+        // Slider moves need more information about the board
+        void generate_slider_moves(uint64_t bitboard, std::vector<Move> &moves, 
+                                   uint64_t(*mask_func)(uint64_t, uint64_t, uint64_t));
+
         // Pawn function has special cases (ugh.)
         void generate_pawn_moves(uint64_t bitboard, std::vector<Move> &moves);
 

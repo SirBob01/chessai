@@ -1,19 +1,6 @@
 #include "bits.h"
 
 namespace chess {
-    /**
-     * Move generation algorithm
-     * Output: Array of bitboards representing possible movements for each piece of the current turn
-     * This is from white's perspective. To do black, just flip the original bitboard, calculate movement bitboards, then flip each movement bitboard
-     *
-     * Directional shifts (for non-sliding pieces): -1, 1, -7, 7, 8, -8, 9, -9
-     * Pawn: 2 steps up if on 2nd rank or 1 step forward, 1 diagonal up for capturing (either normal or en passant)
-     * Bishop: Diagonal and anti-diagonal, (sliding)
-     * Rook: Vertical and horizontal, (sliding)
-     * Queen: Vertical, horizontal, diagonal, anti-diagonal (sliding)
-     * Knight: 2 steps on one axis, 1 step on the other
-     * King: 1 step in any direction
-     */
     void print_bitboard(uint64_t bitboard) {
         std::bitset<64> bitarray(bitboard);
         for(int i = 0; i < 64; i++) {
@@ -40,6 +27,22 @@ namespace chess {
     int find_lsb(uint64_t binary) {
         const uint64_t debruijn64 = 0x07EDD5E59A4E28C2;
         return bitscan_table[((binary & -binary) * debruijn64) >> 58];
+    }
+
+    uint64_t get_diagonal_mask(int shift) {
+        const uint64_t maindia = 0x8040201008040201;
+        int diag =8*(shift & 7) - (shift & 56);
+        int nort = -diag & ( diag >> 31);
+        int sout =  diag & (-diag >> 31);
+        return (maindia >> sout) << nort;
+    }
+
+    uint64_t get_antidiag_mask(int shift) {
+        const uint64_t maindia = 0x0102040810204080;
+        int diag = 56 - 8*(shift & 7) - (shift & 56);
+        int nort = -diag & ( diag >> 31);
+        int sout =  diag & (-diag >> 31);
+        return (maindia >> sout) << nort;
     }
 
     uint64_t shift(uint64_t binary, int shift) {
@@ -98,18 +101,47 @@ namespace chess {
         return moves & en_passant;
     }
 
-    uint64_t get_rook_mask(uint64_t bitboard, uint64_t same_color) {
-        // TODO: Get file and rank of the rook
-        return bitboard;
+    uint64_t get_ray_attack(uint64_t bitboard, uint64_t occupied) {
+        return occupied ^= (occupied - 2 * bitboard);
     }
 
-    uint64_t get_bishop_mask(uint64_t bitboard, uint64_t same_color) {
-        // TODO: Deal with diagonals
-        return bitboard;
+    uint64_t get_rook_mask(uint64_t bitboard, uint64_t same_color, uint64_t opposite_color) {
+        const int shift = find_lsb(bitboard);
+        const uint64_t rank_mask = 0xFF00000000000000 >> (56 - 8 * (shift/8));
+        const uint64_t file_mask = 0x0101010101010101 << (7 & shift);
+        
+        const uint64_t occupied = same_color | opposite_color;
+        uint64_t rank_positive = get_ray_attack(bitboard, occupied & rank_mask) & rank_mask;
+        uint64_t rank_negative = get_ray_attack(flip_horizontal(bitboard), 
+                                                flip_horizontal(occupied & rank_mask)) & rank_mask;
+
+        uint64_t file_positive = get_ray_attack(bitboard, occupied & file_mask) & file_mask;
+        uint64_t file_negative = get_ray_attack(flip_vertical(bitboard), 
+                                                flip_vertical(occupied & file_mask)) & file_mask;
+        return (rank_positive | flip_horizontal(rank_negative) | 
+                file_positive | flip_vertical(file_negative)) & ~same_color;
+    }
+    
+    uint64_t get_bishop_mask(uint64_t bitboard, uint64_t same_color, uint64_t opposite_color) {
+        int shift = find_lsb(bitboard);
+        uint64_t diagonal_mask = get_diagonal_mask(shift);
+        uint64_t antidiag_mask = get_antidiag_mask(shift);
+
+        const uint64_t occupied = same_color | opposite_color;
+        uint64_t diagonal_positive = get_ray_attack(bitboard, occupied & diagonal_mask) & diagonal_mask;
+        uint64_t diagonal_negative = get_ray_attack(flip_vertical(bitboard), 
+                                                    flip_vertical(occupied & diagonal_mask)) & flip_vertical(diagonal_mask);
+
+        uint64_t antidiag_positive = get_ray_attack(bitboard, occupied & antidiag_mask) & antidiag_mask;
+        uint64_t antidiag_negative = get_ray_attack(flip_vertical(bitboard), 
+                                                    flip_vertical(occupied & antidiag_mask)) & flip_vertical(antidiag_mask);
+        return (diagonal_positive | flip_vertical(diagonal_negative) | 
+                antidiag_positive | flip_vertical(antidiag_negative)) & ~same_color;
     }
 
-    uint64_t get_queen_mask(uint64_t bitboard, uint64_t same_color) {
+    uint64_t get_queen_mask(uint64_t bitboard, uint64_t same_color, uint64_t opposite_color) {
         // Queen has the mobility of the rook and bishop combined
-        return get_rook_mask(bitboard, same_color) | get_bishop_mask(bitboard, same_color);
+        return get_rook_mask(bitboard, same_color, opposite_color) | 
+               get_bishop_mask(bitboard, same_color, opposite_color);
     }
 }
