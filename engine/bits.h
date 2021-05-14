@@ -67,6 +67,7 @@ namespace chess {
      * Bitmask constants
      */
     constexpr uint64_t rank4 = 0x00000000FF000000;
+    constexpr uint64_t rank5 = 0x000000FF00000000;
     constexpr uint64_t end_ranks = 0xFF000000000000FF;
     constexpr uint64_t main_diagonal = 0x8040201008040201;
     constexpr uint64_t anti_diagnoal = 0x0102040810204080;
@@ -191,35 +192,27 @@ namespace chess {
     /**
      * Get the position of the pawn after advancing a single rank
      */
-    inline uint64_t get_pawn_advance_mask(uint64_t bitboard, uint64_t all_pieces) {
-        return get_adjacent(bitboard, Direction::Down) & ~all_pieces;
+    inline uint64_t get_pawn_advance_mask(uint64_t bitboard, uint64_t all_pieces, uint8_t color) {
+        return (color == 'w') ? get_adjacent(bitboard, Direction::Down) & ~all_pieces :
+                                get_adjacent(bitboard, Direction::Up) & ~all_pieces;
     }
 
     /**
      * Get the position of the pawn after advancing 2 ranks
      */
-    inline uint64_t get_pawn_double_mask(uint64_t bitboard, uint64_t all_pieces) {
+    inline uint64_t get_pawn_double_mask(uint64_t bitboard, uint64_t all_pieces, uint8_t color) {
         // Move twice, assuming both cells are clear
-        // Only move if target square is rank 4
-        return get_pawn_advance_mask(get_pawn_advance_mask(bitboard, all_pieces), all_pieces) & rank4;
+        // Only move if target square is rank 4 or rank 5
+        uint64_t advance = get_pawn_advance_mask(get_pawn_advance_mask(bitboard, all_pieces, color), all_pieces, color);
+        return (color == 'w') ? advance & rank4 : advance & rank5;
     }
 
     /**
      * Get the all possible positions of the pawn if capturing (either en passant or regular)
      */
-    inline uint64_t get_pawn_capture_mask(uint64_t bitboard) {
-        uint64_t moves = get_adjacent(bitboard, Direction::DownLeft) |
-                         get_adjacent(bitboard, Direction::DownRight);
-        return moves;
-    }
-
-    /**
-     * Get all possible en passant moves
-     */
-    inline uint64_t get_pawn_en_passant_mask(uint64_t bitboard, uint64_t en_passant) {
-        uint64_t moves = get_adjacent(bitboard, Direction::DownLeft) |
-                         get_adjacent(bitboard, Direction::DownRight);
-        return moves & en_passant;
+    inline uint64_t get_pawn_capture_mask(uint64_t bitboard, uint8_t color) {
+        return (color == 'w') ? get_adjacent(bitboard, Direction::DownLeft) | get_adjacent(bitboard, Direction::DownRight) : 
+                                get_adjacent(bitboard, Direction::UpLeft) | get_adjacent(bitboard, Direction::UpRight);
     }
 
     /**

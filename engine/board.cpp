@@ -183,133 +183,80 @@ namespace chess {
 
     void Board::generate_pawn_moves(uint64_t bitboard) {
         uint64_t all_pieces = _bitboards[Piece::White] | _bitboards[Piece::Black];
-        uint64_t opposite_color, en_passant_mask = 0;
+        uint64_t en_passant_mask = 0;
         if(_en_passant_target.shift != -1) {
             en_passant_mask = _en_passant_target.get_mask();
         }
-        if(_turn == 'w') {
-            opposite_color = _bitboards[Piece::Black];
-        }
-        else {
-            // If it's black's turn, flip all auxiliary bitboards
-            opposite_color = flip_vertical(_bitboards[Piece::White]);
-            all_pieces = flip_vertical(all_pieces);
-            en_passant_mask = flip_vertical(en_passant_mask);
-        }
+        uint64_t opposite_color = (_turn == 'w') ? _bitboards[Piece::Black] : _bitboards[Piece::White];
 
         while(bitboard) {
             uint64_t piece = bitboard & (-bitboard);
-            Position from = Position(find_lsb(piece));
-            if(_turn == 'b') piece = flip_vertical(piece);
+            Position from(find_lsb(piece));
 
-            uint64_t advance = get_pawn_advance_mask(piece, all_pieces);
-            if(_turn == 'b') advance = flip_vertical(advance); // Unflip final moves if it's black's turn
+            uint64_t advance = get_pawn_advance_mask(piece, all_pieces, _turn);
             while(advance) {
                 uint64_t move = advance & (-advance);
                 unsigned flags = MoveFlag::Quiet | MoveFlag::PawnAdvance;
                 Position to(find_lsb(move));
                 if(move & end_ranks) {
-                    register_move({
-                        from, to, flags | MoveFlag::QueenPromo
-                    });
-                    register_move({
-                        from, to, flags | MoveFlag::KnightPromo
-                    });
-                    register_move({
-                        from, to, flags | MoveFlag::RookPromo
-                    });
-                    register_move({
-                        from, to, flags | MoveFlag::BishopPromo
-                    });
+                    register_move({from, to, flags | MoveFlag::QueenPromo});
+                    register_move({from, to, flags | MoveFlag::KnightPromo});
+                    register_move({from, to, flags | MoveFlag::RookPromo});
+                    register_move({from, to, flags | MoveFlag::BishopPromo});
                 }
                 else {
-                    register_move({
-                        from, to, flags
-                    });
+                    register_move({from, to, flags});
                 }
                 advance &= (advance - 1);
             }
 
-            uint64_t double_advance = get_pawn_double_mask(piece, all_pieces);
-            if(_turn == 'b') double_advance = flip_vertical(double_advance);
+            uint64_t double_advance = get_pawn_double_mask(piece, all_pieces, _turn);
             while(double_advance) {
                 uint64_t move = double_advance & (-double_advance);
                 unsigned flags = MoveFlag::Quiet | MoveFlag::PawnDouble;
                 Position to(find_lsb(move));
                 if(move & end_ranks) {
-                    register_move({
-                        from, to, flags | MoveFlag::QueenPromo
-                    });
-                    register_move({
-                        from, to, flags | MoveFlag::KnightPromo
-                    });
-                    register_move({
-                        from, to, flags | MoveFlag::RookPromo
-                    });
-                    register_move({
-                        from, to, flags | MoveFlag::BishopPromo
-                    });
+                    register_move({from, to, flags | MoveFlag::QueenPromo});
+                    register_move({from, to, flags | MoveFlag::KnightPromo});
+                    register_move({from, to, flags | MoveFlag::RookPromo});
+                    register_move({from, to, flags | MoveFlag::BishopPromo});
                 }
                 else {
-                    register_move({
-                        from, to, flags
-                    });
+                    register_move({from, to, flags});
                 }
                 double_advance &= (double_advance - 1);
             }
             
-            uint64_t capture = get_pawn_capture_mask(piece) & opposite_color;
-            if(_turn == 'b') capture = flip_vertical(capture);
+            uint64_t capture = get_pawn_capture_mask(piece, _turn) & opposite_color;
             while(capture) {
                 uint64_t move = capture & (-capture);
                 unsigned flags = MoveFlag::Capture;
                 Position to(find_lsb(move));
                 if(move & end_ranks) {
-                    register_move({
-                        from, to, flags | MoveFlag::QueenPromo
-                    });
-                    register_move({
-                        from, to, flags | MoveFlag::KnightPromo
-                    });
-                    register_move({
-                        from, to, flags | MoveFlag::RookPromo
-                    });
-                    register_move({
-                        from, to, flags | MoveFlag::BishopPromo
-                    });
+                    register_move({from, to, flags | MoveFlag::QueenPromo});
+                    register_move({from, to, flags | MoveFlag::KnightPromo});
+                    register_move({from, to, flags | MoveFlag::RookPromo});
+                    register_move({from, to, flags | MoveFlag::BishopPromo});
                 }
                 else {
-                    register_move({
-                        from, to, flags
-                    });
+                    register_move({from, to, flags});
                 }
                 capture &= (capture - 1);
             }
 
-            uint64_t en_passant = get_pawn_en_passant_mask(piece, en_passant_mask);
-            if(_turn == 'b') en_passant = flip_vertical(en_passant);
+            uint64_t en_passant = get_pawn_capture_mask(piece, _turn) & en_passant_mask;
             while(en_passant) {
                 uint64_t move = en_passant & (-en_passant);
                 unsigned flags = MoveFlag::Capture | MoveFlag::EnPassant;
                 Position to(find_lsb(move));
                 if(move & end_ranks) {
-                    register_move({
-                        from, to, flags | MoveFlag::QueenPromo
-                    });
-                    register_move({
-                        from, to, flags | MoveFlag::KnightPromo
-                    });
-                    register_move({
-                        from, to, flags | MoveFlag::RookPromo
-                    });
-                    register_move({
-                        from, to, flags | MoveFlag::BishopPromo
-                    });
+                    register_move({from, to, flags | MoveFlag::QueenPromo});
+                    register_move({from, to, flags | MoveFlag::KnightPromo});
+                    register_move({from, to, flags | MoveFlag::RookPromo});
+                    register_move({from, to, flags | MoveFlag::BishopPromo});
                 }
                 else {
-                    register_move({
-                        from, to, flags
-                    });
+                    register_move({from, to, flags});
                 }
                 en_passant &= (en_passant - 1);
             }
@@ -439,31 +386,35 @@ namespace chess {
         uint64_t attack_board = 0;
         for(int i = start; i < start + 6; i++) {
             uint64_t bitboard = _bitboards[i];
+            int piece = i % 6;
+            // Single move pieces can be bit-parallelized
+            if(piece == Piece::WhitePawn) {
+                if(_turn == 'w') {
+                    attack_board |= get_pawn_capture_mask(bitboard, 'b');
+                }
+                else {
+                    attack_board |= get_pawn_capture_mask(bitboard, 'w');
+                }
+            }
+            else if(piece == Piece::WhiteKnight) {
+                attack_board |= get_knight_mask(bitboard, same_color);
+            }
+            else if(piece == Piece::WhiteKing) {
+                attack_board |= get_king_mask(bitboard, same_color);
+            }
+
+            // Sliding pieces must be handled individually
             while(bitboard) {
-                uint64_t piece = bitboard & (-bitboard);
-                switch(i % 6) {
-                    case Piece::WhitePawn:
-                        if(_turn == 'w') {
-                            attack_board |= flip_vertical(get_pawn_capture_mask(flip_vertical(piece)));
-                        }
-                        else {
-                            attack_board |= get_pawn_capture_mask(piece);
-                        }
-                        break;
-                    case Piece::WhiteKnight:
-                        attack_board |= get_knight_mask(piece, same_color);
-                        break;
-                    case Piece::WhiteKing:
-                        attack_board |= get_king_mask(piece, same_color);
-                        break;
+                uint64_t unit = bitboard & (-bitboard);
+                switch(piece) {
                     case Piece::WhiteBishop:
-                        attack_board |= get_bishop_mask(piece, same_color, opposite_color);
+                        attack_board |= get_bishop_mask(unit, same_color, opposite_color);
                         break;
                     case Piece::WhiteRook:
-                        attack_board |= get_rook_mask(piece, same_color, opposite_color);
+                        attack_board |= get_rook_mask(unit, same_color, opposite_color);
                         break;
                     case Piece::WhiteQueen:
-                        attack_board |= get_queen_mask(piece, same_color, opposite_color);
+                        attack_board |= get_queen_mask(unit, same_color, opposite_color);
                         break;
                     default:
                         break;
