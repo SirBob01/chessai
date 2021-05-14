@@ -100,25 +100,39 @@ namespace chess {
         int _halfmoves;
         int _fullmoves;
 
+        uint64_t _attackers;
         std::vector<Move> _legal_moves;
 
         /**
          * Generate all pseudo-legal moves for each piece and add them to a move vector
          */
-        void generate_piece_moves(uint64_t bitboard, std::vector<Move> &moves, 
-                                  uint64_t(*mask_func)(uint64_t, uint64_t));
+        void generate_piece_moves(uint64_t bitboard, uint64_t(*mask_func)(uint64_t, uint64_t));
 
         // Slider moves need more information about the board
-        void generate_slider_moves(uint64_t bitboard, std::vector<Move> &moves, 
-                                   uint64_t(*mask_func)(uint64_t, uint64_t, uint64_t));
+        void generate_slider_moves(uint64_t bitboard, uint64_t(*mask_func)(uint64_t, uint64_t, uint64_t));
 
         // Pawn function has special cases (ugh.)
-        void generate_pawn_moves(uint64_t bitboard, std::vector<Move> &moves);
+        void generate_pawn_moves(uint64_t bitboard);
 
         /**
-         * Generate all pseudo legal moves by the current turn
+         * Test if a pseudo-legal move is legal
+         * Algorithm for generating legal moves from pseudo legal?
+         * - If king is the moving piece, make sure destination square is not an attack target
+         * - If move is an en passant, king must not currently be in check
+         * - If non-king piece, it must not be pinned, or if it is, to and from pieces must be aligned with king
          */
-        std::vector<Move> generate_pseudo_legal_moves();
+        bool is_legal(Move move);
+
+        /**
+         * If a pseudo-legal move is legal, register it to the move list
+         */
+        void register_move(Move move);
+
+        /**
+         * Generate all legal moves
+         * If move list is empty, then player is in checkmate
+         */
+        void generate_moves();
 
         /**
          * Test if a position is pinned
@@ -129,16 +143,6 @@ namespace chess {
          * Get the attack vectors for all of the opposing pieces
          */
         uint64_t get_attackers();
-
-        /**
-         * Generate all legal moves
-         * If move list is empty, then player is in checkmate
-         * Algorithm for generating legal moves from pseudo legal?
-         * - If king is the moving piece, make sure destination square is not an attack target
-         * - If move is an en passant, king must not currently be in check
-         * - If non-king piece, it must not be pinned, or if it is, to and from pieces must be aligned with king
-         */
-        void generate();
         
     public:
         Board(std::string fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");

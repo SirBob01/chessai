@@ -55,7 +55,9 @@ namespace chess {
         }
         _halfmoves = stoi(fields[4]);
         _fullmoves = stoi(fields[5]);
-        generate();
+        
+        _attackers = get_attackers();
+        generate_moves();
     }
 
     std::string Board::generate_fen() {
@@ -105,7 +107,7 @@ namespace chess {
         return fen;
     }
 
-    void Board::generate_piece_moves(uint64_t bitboard, std::vector<Move> &moves, uint64_t(*mask_func)(uint64_t, uint64_t)) {
+    void Board::generate_piece_moves(uint64_t bitboard, uint64_t(*mask_func)(uint64_t, uint64_t)) {
         uint64_t same_color, opposite_color;
         if(_turn == 'w') {
             same_color = _bitboards[Piece::White];
@@ -128,21 +130,21 @@ namespace chess {
             while(advance) {
                 uint64_t move = advance &(-advance);
                 Position to = Position(find_lsb(move));
-                moves.push_back({from, to, MoveFlag::Quiet});
+                register_move({from, to, MoveFlag::Quiet});
                 advance &= (advance - 1);
             }
 
             while(capture) {
                 uint64_t move = capture & (-capture);
                 Position to = Position(find_lsb(move));
-                moves.push_back({from, to, MoveFlag::Capture});
+                register_move({from, to, MoveFlag::Capture});
                 capture &= (capture - 1);
             }
             bitboard &= (bitboard - 1);
         }
     }
 
-    void Board::generate_slider_moves(uint64_t bitboard, std::vector<Move> &moves, uint64_t(*mask_func)(uint64_t, uint64_t, uint64_t)) {
+    void Board::generate_slider_moves(uint64_t bitboard, uint64_t(*mask_func)(uint64_t, uint64_t, uint64_t)) {
         uint64_t same_color, opposite_color;
         if(_turn == 'w') {
             same_color = _bitboards[Piece::White];
@@ -165,21 +167,21 @@ namespace chess {
             while(advance) {
                 uint64_t move = advance &(-advance);
                 Position to = Position(find_lsb(move));
-                moves.push_back({from, to, MoveFlag::Quiet});
+                register_move({from, to, MoveFlag::Quiet});
                 advance &= (advance - 1);
             }
 
             while(capture) {
                 uint64_t move = capture & (-capture);
                 Position to = Position(find_lsb(move));
-                moves.push_back({from, to, MoveFlag::Capture});
+                register_move({from, to, MoveFlag::Capture});
                 capture &= (capture - 1);
             }
             bitboard &= (bitboard - 1);
         }
     }
 
-    void Board::generate_pawn_moves(uint64_t bitboard, std::vector<Move> &moves) {
+    void Board::generate_pawn_moves(uint64_t bitboard) {
         uint64_t all_pieces = _bitboards[Piece::White] | _bitboards[Piece::Black];
         uint64_t opposite_color, en_passant_mask = 0;
         if(_en_passant_target.shift != -1) {
@@ -207,21 +209,21 @@ namespace chess {
                 unsigned flags = MoveFlag::Quiet | MoveFlag::PawnAdvance;
                 Position to(find_lsb(move));
                 if(move & end_ranks) {
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::QueenPromo
                     });
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::KnightPromo
                     });
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::RookPromo
                     });
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::BishopPromo
                     });
                 }
                 else {
-                    moves.push_back({
+                    register_move({
                         from, to, flags
                     });
                 }
@@ -235,21 +237,21 @@ namespace chess {
                 unsigned flags = MoveFlag::Quiet | MoveFlag::PawnDouble;
                 Position to(find_lsb(move));
                 if(move & end_ranks) {
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::QueenPromo
                     });
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::KnightPromo
                     });
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::RookPromo
                     });
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::BishopPromo
                     });
                 }
                 else {
-                    moves.push_back({
+                    register_move({
                         from, to, flags
                     });
                 }
@@ -263,21 +265,21 @@ namespace chess {
                 unsigned flags = MoveFlag::Capture;
                 Position to(find_lsb(move));
                 if(move & end_ranks) {
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::QueenPromo
                     });
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::KnightPromo
                     });
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::RookPromo
                     });
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::BishopPromo
                     });
                 }
                 else {
-                    moves.push_back({
+                    register_move({
                         from, to, flags
                     });
                 }
@@ -291,21 +293,21 @@ namespace chess {
                 unsigned flags = MoveFlag::Capture | MoveFlag::EnPassant;
                 Position to(find_lsb(move));
                 if(move & end_ranks) {
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::QueenPromo
                     });
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::KnightPromo
                     });
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::RookPromo
                     });
-                    moves.push_back({
+                    register_move({
                         from, to, flags | MoveFlag::BishopPromo
                     });
                 }
                 else {
-                    moves.push_back({
+                    register_move({
                         from, to, flags
                     });
                 }
@@ -315,43 +317,65 @@ namespace chess {
         }
     }
 
-    std::vector<Move> Board::generate_pseudo_legal_moves() {
-        int start;
-        if(_turn == 'w') {
-            start = 0;
+    bool Board::is_legal(Move move) {
+        uint64_t king = _turn == 'w' ? _bitboards[Piece::WhiteKing] : _bitboards[Piece::BlackKing];
+        uint64_t from = move.from.get_mask();
+        uint64_t to = move.to.get_mask();
+        
+        // Pawn cannot perform an En Passant if the king is in check
+        if((move.flags & MoveFlag::EnPassant) && (_attackers & king)) {
+            return false;
         }
-        else {
-            start = 6;
+        
+        // If king is the moving piece, ensure destination is not an attacked square
+        if((king & from) && (_attackers & to)) {
+            return false;
         }
-        std::vector<Move> pseudo_legal;
+
+        // Non-king piece is moving, make sure it either isn't pinned
+        // or it target destination still blocks king from attacker
+        if(!is_aligned(move.to.get_mask(), move.from.get_mask(), king) &&
+            is_king_pinned(move.from)) {
+            return false;
+        }
+        return true;
+    }
+
+    void Board::register_move(Move move) {
+        if(is_legal(move)) {
+            _legal_moves.push_back(move);
+        }
+    }
+
+    void Board::generate_moves() {
+        int start = (_turn == 'w') ? 0 : 6;
         for(int i = start; i < start + 6; i++) {
             uint64_t bitboard = _bitboards[i];
             switch(i % 6) {
                 // Relative index ordering in bitboard array is the same
                 // for both white and black pieces
                 case Piece::WhitePawn:
-                    generate_pawn_moves(bitboard, pseudo_legal);
+                    generate_pawn_moves(bitboard);
                     break;
                 case Piece::WhiteKnight:
-                    generate_piece_moves(bitboard, pseudo_legal, get_knight_mask);
+                    generate_piece_moves(bitboard, get_knight_mask);
                     break;
                 case Piece::WhiteKing:
-                    generate_piece_moves(bitboard, pseudo_legal, get_king_mask);
+                    generate_piece_moves(bitboard, get_king_mask);
                     break;
                 case Piece::WhiteBishop:
-                    generate_slider_moves(bitboard, pseudo_legal, get_bishop_mask);
+                    generate_slider_moves(bitboard, get_bishop_mask);
                     break;
                 case Piece::WhiteRook:
-                    generate_slider_moves(bitboard, pseudo_legal, get_rook_mask);
+                    generate_slider_moves(bitboard, get_rook_mask);
                     break;
                 case Piece::WhiteQueen:
-                    generate_slider_moves(bitboard, pseudo_legal, get_queen_mask);
+                    generate_slider_moves(bitboard, get_queen_mask);
                     break;
                 default:
                     break;
             }
         }
-        return pseudo_legal;
     }
 
     bool Board::is_king_pinned(Position pos) {
@@ -448,34 +472,6 @@ namespace chess {
             }
         }
         return attack_board;
-    }
-
-    void Board::generate() {
-        std::vector<Move> pseudo_legal = generate_pseudo_legal_moves();
-        uint64_t attackers = get_attackers();
-        uint64_t king = _turn == 'w' ? _bitboards[Piece::WhiteKing] : _bitboards[Piece::BlackKing];
-        for(auto &move : pseudo_legal) {
-            uint64_t from = move.from.get_mask();
-            uint64_t to = move.to.get_mask();
-            
-            // Pawn cannot perform an En Passant if the king is in check
-            if((move.flags & MoveFlag::EnPassant) && (attackers & king)) {
-                continue;
-            }
-            
-            // If king is the moving piece, ensure destination is not an attacked square
-            if((king & from) && (attackers & to)) {
-                continue;
-            }
-
-            // Non-king piece is moving, make sure it either isn't pinned
-            // or it target destination still blocks king from attacker
-            if(!is_aligned(move.to.get_mask(), move.from.get_mask(), king) &&
-                is_king_pinned(move.from)) {
-                continue;
-            }
-            _legal_moves.push_back(move);
-        }
     }
 
     int Board::calculate_material() {
