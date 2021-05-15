@@ -276,6 +276,16 @@ namespace chess {
         if((move.flags & MoveFlag::EnPassant) && (_attackers & king)) {
             return false;
         }
+
+        // King cannot castle if it is in check or if it has to pass through an attacked square
+        if(move.flags & MoveFlag::Castle) {
+            int rankd = move.to.shift - move.from.shift;
+            int dir = (rankd > 0) - (rankd < 0);
+            Position pass_through(move.to.shift - dir);
+            if((_attackers & king) || (_attackers & pass_through.get_mask())) {
+                return false;
+            }
+        }
         
         // If king is the moving piece, ensure destination is not an attacked square
         if((king & from) && (_attackers & to)) {
