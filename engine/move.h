@@ -13,6 +13,7 @@ namespace chess {
         Position() : shift(-1) {}
         Position(int shift) : shift(shift) {}
         Position(char file, char rank);
+        Position(std::string notation);
 
         std::string standard_notation();
         uint64_t get_mask();
@@ -52,6 +53,8 @@ namespace chess {
         Position from;
         Position to;
         unsigned flags = MoveFlag::Quiet;
+
+        bool is_invalid();
     };
 }
 

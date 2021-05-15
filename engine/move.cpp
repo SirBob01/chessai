@@ -7,6 +7,12 @@ namespace chess {
         shift = row * 8 + col;
     }
 
+    Position::Position(std::string notation) {
+        int row = notation[1] - '1';
+        int col = notation[0] - 'a';
+        shift = row * 8 + col;
+    }
+
     std::string Position::standard_notation() {
         int row = shift / 8;
         int col = shift % 8;
@@ -17,5 +23,9 @@ namespace chess {
 
     uint64_t Position::get_mask() {
         return 1ULL << shift;
+    }
+
+    bool Move::is_invalid() {
+        return flags & MoveFlag::Invalid;
     }
 }
