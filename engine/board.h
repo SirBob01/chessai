@@ -102,6 +102,21 @@ namespace chess {
         bool is_king_pinned(Position pos);
 
         /**
+         * Check if moving a piece into a position will protect the king
+         */
+        bool is_protecting_king(Position pos);
+
+        /**
+         * Check if removing opposing pieces from the board will protect the king
+         */
+        bool can_capture_attackers(uint64_t mask);
+
+        /**
+         * Test if an en passant move leads to a discovered check
+         */
+        bool en_passant_discovered(uint64_t color_mask, uint64_t opposite_color_mask);
+
+        /**
          * Get the attack vectors for all of the opposing pieces
          */
         uint64_t get_attackers();

@@ -268,37 +268,48 @@ namespace chess {
     }
 
     bool Board::is_legal(Move move) {
+        // TODO: Fix logic bugs!!!
+        // When in check, other pieces can move to protect king
         uint64_t king = (_turn == 'w') ? _bitboards[Piece::WhiteKing] : _bitboards[Piece::BlackKing];
         uint64_t from = move.from.get_mask();
         uint64_t to = move.to.get_mask();
-        
-        // Pawn cannot perform an En Passant if the king is in check
-        if((move.flags & MoveFlag::EnPassant) && (_attackers & king)) {
-            return false;
+
+        // Deal with en passant
+        if(move.flags & MoveFlag::EnPassant) {
+            int rankd = move.to.shift - move.from.shift;
+            int dir = (rankd > 0) - (rankd < 0); 
+            Position target_pawn(_en_passant_target.shift - (dir * 8));
+
+            if(!en_passant_discovered(from, target_pawn.get_mask())) {
+                return false;
+            }
         }
 
         // King cannot castle if it is in check or if it has to pass through an attacked square
         if(move.flags & MoveFlag::Castle) {
+            if(_attackers & king) {
+                return false;
+            }
             int rankd = move.to.shift - move.from.shift;
             int dir = (rankd > 0) - (rankd < 0);
             Position pass_through(move.to.shift - dir);
-            if((_attackers & king) || (_attackers & pass_through.get_mask())) {
+            if(_attackers & pass_through.get_mask()) {
                 return false;
             }
         }
         
         // If king is the moving piece, ensure destination is not an attacked square
-        if((king & from) && (_attackers & to)) {
-            return false;
+        if(king & from) {
+            return (_attackers & to) == 0;
         }
-
-        // Non-king piece is moving, make sure it either isn't pinned
-        // or it target destination still blocks king from attacker
-        if(!is_aligned(from, to, king) &&
-            is_king_pinned(move.from)) {
-            return false;
+        
+        // Typical case: non-king piece is moved
+        // If king is in check, destination square must either block the attack piece or capture it
+        // Otherwise, it is only valid if it is not pinned or, if it is, the destination will still block the attack
+        if(king & _attackers) {
+            return is_protecting_king(move.to) || can_capture_attackers(to);
         }
-        return true;
+        return !(is_king_pinned(move.from)) || is_aligned(from, to, king);
     }
 
     void Board::register_move(Move move) {
@@ -308,6 +319,7 @@ namespace chess {
     }
 
     void Board::generate_moves() {
+        _legal_moves.clear();
         int start = (_turn == 'w') ? 0 : 6;
         for(int i = start; i < start + 6; i++) {
             uint64_t bitboard = _bitboards[i];
@@ -379,6 +391,132 @@ namespace chess {
             bishops &= (bishops-1);
         }
         return king & attacks;
+    }
+
+    bool Board::is_protecting_king(Position pos) {
+        uint64_t mask = pos.get_mask();
+        uint64_t same_color, opposite_color, queens, bishops, rooks, king;
+        // Test? Add bit from the occluder list and test
+        // if any of the opposing sliding pieces can attack the king
+        // Test queen, bishop, and rook
+        if(_turn == 'w') {
+            opposite_color = _bitboards[Piece::White] | mask;
+            king = _bitboards[Piece::WhiteKing];
+            same_color = _bitboards[Piece::Black];
+            queens = _bitboards[Piece::BlackQueen];
+            rooks = _bitboards[Piece::BlackRook];
+            bishops = _bitboards[Piece::BlackBishop];
+        }
+        else {
+            opposite_color = _bitboards[Piece::Black] | mask;
+            king = _bitboards[Piece::BlackKing];
+            same_color = _bitboards[Piece::White];
+            queens = _bitboards[Piece::WhiteQueen];
+            rooks = _bitboards[Piece::WhiteRook];
+            bishops = _bitboards[Piece::WhiteBishop];
+        }
+
+        uint64_t attacks = 0;
+        while(queens) {
+            uint64_t piece = queens & (-queens);
+            attacks |= get_queen_mask(piece, same_color, opposite_color);
+            queens &= (queens-1);
+        }
+        while(rooks) {
+            uint64_t piece = rooks & (-rooks);
+            attacks |= get_rook_mask(piece, same_color, opposite_color);
+            rooks &= (rooks-1);
+        }
+        while(bishops) {
+            uint64_t piece = bishops & (-bishops);
+            attacks |= get_bishop_mask(piece, same_color, opposite_color);
+            bishops &= (bishops-1);
+        }
+        return (king & attacks) == 0;
+    }
+
+    bool Board::can_capture_attackers(uint64_t mask) {
+        // 1. Remove attacker (destination bit) from attacker space
+        // 2. Recalculate attackers bitboard
+        // 3. Return (attackers & king) == 0
+        uint64_t same_color, opposite_color, queens, bishops, rooks, king;
+        mask = ~mask;
+        
+        if(_turn == 'w') {
+            opposite_color = _bitboards[Piece::White];
+            king = _bitboards[Piece::WhiteKing];
+            same_color = _bitboards[Piece::Black] & mask;
+            queens = _bitboards[Piece::BlackQueen] & mask;
+            rooks = _bitboards[Piece::BlackRook] & mask;
+            bishops = _bitboards[Piece::BlackBishop] & mask;
+        }
+        else {
+            opposite_color = _bitboards[Piece::Black];
+            king = _bitboards[Piece::BlackKing];
+            same_color = _bitboards[Piece::White] & mask;
+            queens = _bitboards[Piece::WhiteQueen] & mask;
+            rooks = _bitboards[Piece::WhiteRook] & mask;
+            bishops = _bitboards[Piece::WhiteBishop] & mask;
+        }
+
+        uint64_t attacks = 0;
+        while(queens) {
+            uint64_t piece = queens & (-queens);
+            attacks |= get_queen_mask(piece, same_color, opposite_color);
+            queens &= (queens-1);
+        }
+        while(rooks) {
+            uint64_t piece = rooks & (-rooks);
+            attacks |= get_rook_mask(piece, same_color, opposite_color);
+            rooks &= (rooks-1);
+        }
+        while(bishops) {
+            uint64_t piece = bishops & (-bishops);
+            attacks |= get_bishop_mask(piece, same_color, opposite_color);
+            bishops &= (bishops-1);
+        }
+        return (king & attacks) == 0;
+    }
+
+    bool Board::en_passant_discovered(uint64_t pawn, uint64_t target_pawn) {
+        uint64_t same_color, opposite_color, queens, bishops, rooks, king;
+        pawn = ~pawn;
+        target_pawn = ~target_pawn;
+        
+        if(_turn == 'w') {
+            opposite_color = _bitboards[Piece::White] & pawn;
+            king = _bitboards[Piece::WhiteKing];
+            same_color = _bitboards[Piece::Black] & target_pawn;
+            queens = _bitboards[Piece::BlackQueen];
+            rooks = _bitboards[Piece::BlackRook];
+            bishops = _bitboards[Piece::BlackBishop];
+        }
+        else {
+            opposite_color = _bitboards[Piece::Black] & pawn;
+            king = _bitboards[Piece::BlackKing];
+            same_color = _bitboards[Piece::White] & target_pawn;
+            queens = _bitboards[Piece::WhiteQueen];
+            rooks = _bitboards[Piece::WhiteRook];
+            bishops = _bitboards[Piece::WhiteBishop];
+        }
+
+        uint64_t attacks = 0;
+        while(queens) {
+            uint64_t piece = queens & (-queens);
+            attacks |= get_queen_mask(piece, same_color, opposite_color);
+            queens &= (queens-1);
+        }
+        while(rooks) {
+            uint64_t piece = rooks & (-rooks);
+            attacks |= get_rook_mask(piece, same_color, opposite_color);
+            rooks &= (rooks-1);
+        }
+        while(bishops) {
+            uint64_t piece = bishops & (-bishops);
+            attacks |= get_bishop_mask(piece, same_color, opposite_color);
+            bishops &= (bishops-1);
+        }
+        return (king & attacks) == 0;   
     }
 
     uint64_t Board::get_attackers() {
@@ -598,6 +736,9 @@ namespace chess {
         else {
             _turn = 'b';
         }
+
+        _attackers = get_attackers();
+        generate_moves();
     }
 
     Move Board::create_move(Position from, Position to) {
