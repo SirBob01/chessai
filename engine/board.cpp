@@ -65,10 +65,10 @@ namespace chess {
 
         std::string castling_rights = "";
         
-        if(_castling_rights & 1) castling_rights += 'K';
-        if((_castling_rights >> 1) & 1) castling_rights += 'Q';
-        if((_castling_rights >> 2) & 1) castling_rights += 'k';
-        if((_castling_rights >> 3) & 1) castling_rights += 'q';
+        if(_castling_rights & Castle::KingWhite)  castling_rights += 'K';
+        if(_castling_rights & Castle::QueenWhite) castling_rights += 'Q';
+        if(_castling_rights & Castle::KingBlack)  castling_rights += 'k';
+        if(_castling_rights & Castle::QueenBlack) castling_rights += 'q';
         if(castling_rights.length() == 0) castling_rights = "-";
         fen += " " + castling_rights;
         
