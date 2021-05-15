@@ -1,6 +1,22 @@
 #ifndef CHESS_BITS_H_
 #define CHESS_BITS_H_
 
+#ifdef _MSC_VER
+
+#include <stdlib.h>
+#define bswap_64(x) _byteswap_uint64(x)
+
+#elif defined(__APPLE__)
+
+#include <libkern/OSByteOrder.h>
+#define bswap_64(x) OSSwapInt64(x)
+
+#else 
+
+#include <byteswap.h>
+
+#endif
+
 #include <bitset>
 #include <iostream>
 #include <cstdint>
@@ -85,7 +101,7 @@ namespace chess {
      * Vertically flip the bitboard
      */
     inline uint64_t flip_vertical(uint64_t bitboard) {
-        return _byteswap_uint64(bitboard);
+        return bswap_64(bitboard);
     }
 
     /**
