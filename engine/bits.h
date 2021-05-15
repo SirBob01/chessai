@@ -5,6 +5,8 @@
 #include <iostream>
 #include <cstdint>
 
+#include "move.h"
+
 namespace chess {
     /** 
      * Cardinal and ordinal directions on the board
@@ -66,6 +68,8 @@ namespace chess {
     /**
      * Bitmask constants
      */
+    constexpr uint64_t fileA = 0x0101010101010101;
+    constexpr uint64_t fileH = 0x8080808080808080;
     constexpr uint64_t rank4 = 0x00000000FF000000;
     constexpr uint64_t rank5 = 0x000000FF00000000;
     constexpr uint64_t end_ranks = 0xFF000000000000FF;
@@ -262,6 +266,30 @@ namespace chess {
     inline uint64_t get_queen_mask(uint64_t bitboard, uint64_t same_color, uint64_t opposite_color) {
         return get_rook_mask(bitboard, same_color, opposite_color) | 
                get_bishop_mask(bitboard, same_color, opposite_color);
+    }
+
+    /**
+     * Get the final positions for the king when castling
+     */
+    inline uint64_t get_castling_mask(uint64_t all_pieces, int side) {
+        // BC and FG files must be clear on the end ranks
+        if(side & Castle::KingWhite) {
+            if(all_pieces & 0x60) return 0;
+            return 0x40;
+        }
+        else if(side & Castle::QueenWhite) {
+            if(all_pieces & 0xE) return 0;
+            return 0x4;
+        }
+        else if(side & Castle::KingBlack) {
+            if(all_pieces & 0x6000000000000000) return 0;
+            return 0x4000000000000000;
+        }
+        else if(side & Castle::QueenBlack) {
+            if(all_pieces & 0x0E00000000000000) return 0;
+            return 0x0400000000000000;
+        }
+        return 0;
     }
 }
 

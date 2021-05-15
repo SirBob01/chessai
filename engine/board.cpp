@@ -1,24 +1,6 @@
 #include "board.h"
 
 namespace chess {
-    Position::Position(char file, char rank) {
-        int row = rank - '1';
-        int col = file - 'a';
-        shift = row * 8 + col;
-    }
-
-    std::string Position::standard_notation() {
-        int row = shift / 8;
-        int col = shift % 8;
-        char rank = row + '1';
-        char field = col + 'a';
-        return std::string({field, rank});
-    }
-
-    uint64_t Position::get_mask() {
-        return 1ULL << shift;
-    }
-
     Board::Board(std::string fen_string) {
         std::vector<std::string> fields = chess::util::tokenize(fen_string, ' ');
         
@@ -42,12 +24,10 @@ namespace chess {
         _turn = fields[1][0];
         _castling_rights = 0;
         for(auto &c : fields[2]) {
-            int shift;
-            if(c == 'K') shift = 0;
-            else if(c == 'Q') shift = 1;
-            else if(c == 'k') shift = 2;
-            else if(c == 'q') shift = 3;
-            _castling_rights |= (1 << shift);
+            if(c == 'K')      _castling_rights |= Castle::KingWhite;
+            else if(c == 'Q') _castling_rights |= Castle::QueenWhite;
+            else if(c == 'k') _castling_rights |= Castle::KingBlack;
+            else if(c == 'q') _castling_rights |= Castle::QueenBlack;
         }
 
         if(fields[3].length() == 2) {
@@ -264,8 +244,31 @@ namespace chess {
         }
     }
 
+    void Board::generate_castling_moves(uint64_t bitboard) {
+        uint64_t all_pieces = _bitboards[Piece::White] | _bitboards[Piece::Black];
+        uint8_t rights;
+        if(_turn == 'w') {
+            rights = _castling_rights & (Castle::KingWhite | Castle::QueenWhite);
+        }
+        else {
+            rights = _castling_rights & (Castle::KingBlack | Castle::QueenBlack);
+        }
+        Position from(find_lsb(bitboard));
+        while(rights) {
+            uint8_t side = rights & (-rights);
+            
+            uint64_t mask = get_castling_mask(all_pieces, side);
+            if(mask) {
+                int diff = find_lsb(mask) - from.shift;
+                Position to(find_lsb(mask));
+                register_move({from, to, MoveFlag::Quiet | MoveFlag::Castle});
+            }
+            rights &= (rights-1);
+        }
+    }
+
     bool Board::is_legal(Move move) {
-        uint64_t king = _turn == 'w' ? _bitboards[Piece::WhiteKing] : _bitboards[Piece::BlackKing];
+        uint64_t king = (_turn == 'w') ? _bitboards[Piece::WhiteKing] : _bitboards[Piece::BlackKing];
         uint64_t from = move.from.get_mask();
         uint64_t to = move.to.get_mask();
         
@@ -281,7 +284,7 @@ namespace chess {
 
         // Non-king piece is moving, make sure it either isn't pinned
         // or it target destination still blocks king from attacker
-        if(!is_aligned(move.to.get_mask(), move.from.get_mask(), king) &&
+        if(!is_aligned(from, to, king) &&
             is_king_pinned(move.from)) {
             return false;
         }
@@ -309,6 +312,7 @@ namespace chess {
                     break;
                 case Piece::WhiteKing:
                     generate_piece_moves(bitboard, get_king_mask);
+                    generate_castling_moves(bitboard);
                     break;
                 case Piece::WhiteBishop:
                     generate_slider_moves(bitboard, get_bishop_mask);
@@ -484,10 +488,31 @@ namespace chess {
     }
 
     void Board::execute_move(Move move) {
-        // TODO: Deal with castling
         _halfmoves++;
         Piece piece = get_at(move.from);
         Piece target = get_at(move.to);
+
+        // Unset castling flags if relevant pieces were moved
+        if(_castling_rights & (Castle::KingWhite | Castle::QueenWhite)) {
+            if(piece == Piece::WhiteKing) {
+                _castling_rights ^= (Castle::KingWhite | Castle::QueenWhite);
+            }
+            else if(piece == Piece::WhiteRook) {
+                uint64_t mask = move.from.get_mask();
+                if(mask & fileA) _castling_rights ^= Castle::QueenWhite;
+                else if(mask & fileH) _castling_rights ^= Castle::KingWhite;
+            }
+        }
+        if(_castling_rights & (Castle::KingBlack | Castle::QueenBlack)) {
+            if(piece == Piece::BlackKing) {
+                _castling_rights ^= (Castle::KingBlack | Castle::QueenBlack);
+            }
+            else if(piece == Piece::BlackRook) {
+                uint64_t mask = move.from.get_mask();
+                if(mask & fileA) _castling_rights ^= Castle::QueenBlack;
+                else if(mask & fileH) _castling_rights ^= Castle::KingBlack;
+            }
+        }
 
         // Move to target square and handle promotions
         clear_at(move.from);
@@ -510,6 +535,23 @@ namespace chess {
         else {
             set_at(move.to, piece);
         }
+
+        // Move rook if castling
+        if(move.flags & MoveFlag::Castle) {
+            int rankd = move.to.shift - move.from.shift;
+            int dir = (rankd > 0) - (rankd < 0);
+            Piece rook_type = (_turn == 'w') ? Piece::WhiteRook : Piece::BlackRook;
+            uint64_t rook = _bitboards[rook_type];
+            Position target(move.to.shift - dir);
+            if(rankd < 0) {
+                rook &= fileA;
+            }
+            else {
+                rook &= fileH;
+            }
+            clear_at(Position(find_lsb(rook)));
+            set_at(target, rook_type);
+        } 
 
         // Check for en passant capture
         if(move.flags & MoveFlag::EnPassant) {

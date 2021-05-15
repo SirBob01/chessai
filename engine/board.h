@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 
+#include "move.h"
 #include "bits.h"
 #include "util.h"
 
@@ -46,48 +47,6 @@ namespace chess {
     };
 
     /**
-     * A position on the board represented by a bitshift value (0 - 63)
-     */
-    struct Position {
-        int shift;
-
-        Position() : shift(-1) {}
-        Position(int shift) : shift(shift) {}
-        Position(char file, char rank);
-
-        std::string standard_notation();
-        uint64_t get_mask();
-    };
-
-    /**
-     * Flags that describe a chess move
-     */
-    enum MoveFlag {
-        Quiet       = 0,
-        Capture     = 1 << 0,
-        EnPassant   = 1 << 1,
-        PawnAdvance = 1 << 2,
-        PawnDouble  = 1 << 3,
-        KingCastle  = 1 << 4,
-        QueenCastle = 1 << 5,
-        KnightPromo = 1 << 6,
-        QueenPromo  = 1 << 7,
-        BishopPromo = 1 << 8,
-        RookPromo   = 1 << 9,
-        Invalid     = 1 << 10
-    };
-
-    /**
-     * Container of a chess move
-     */
-    struct Move {
-        Position from;
-        Position to;
-        unsigned flags = MoveFlag::Quiet;
-    };
-
-
-    /**
      * Represents a chess board's state
      */
     class Board {
@@ -113,6 +72,9 @@ namespace chess {
 
         // Pawn function has special cases (ugh.)
         void generate_pawn_moves(uint64_t bitboard);
+
+        // Castling
+        void generate_castling_moves(uint64_t bitboard);
 
         /**
          * Test if a pseudo-legal move is legal
