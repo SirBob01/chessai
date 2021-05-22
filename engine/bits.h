@@ -20,7 +20,9 @@
 #include <bitset>
 #include <iostream>
 #include <cstdint>
+#include <stack>
 
+#include "piece.h"
 #include "move.h"
 
 namespace chess {
@@ -182,68 +184,68 @@ namespace chess {
     /**
      * Get the all possible directions the king can move to from its current position
      */
-    inline uint64_t get_king_mask(uint64_t bitboard, uint64_t same_color) {
-        uint64_t moves = get_adjacent(bitboard, Direction::Left)     |
-                         get_adjacent(bitboard, Direction::Right)    |
-                         get_adjacent(bitboard, Direction::Up)       |
-                         get_adjacent(bitboard, Direction::Down)     |
-                         get_adjacent(bitboard, Direction::UpLeft)   |
-                         get_adjacent(bitboard, Direction::UpRight)  |
-                         get_adjacent(bitboard, Direction::DownLeft) |
-                         get_adjacent(bitboard, Direction::DownRight);
-        return moves & ~same_color;
+    inline uint64_t get_king_mask(uint64_t bitboard) {
+        return get_adjacent(bitboard, Direction::Left)     |
+               get_adjacent(bitboard, Direction::Right)    |
+               get_adjacent(bitboard, Direction::Up)       |
+               get_adjacent(bitboard, Direction::Down)     |
+               get_adjacent(bitboard, Direction::UpLeft)   |
+               get_adjacent(bitboard, Direction::UpRight)  |
+               get_adjacent(bitboard, Direction::DownLeft) |
+               get_adjacent(bitboard, Direction::DownRight);
     }
 
     /**
      * Get the all possible directions the knight can move to from its current position
      */
-    inline uint64_t get_knight_mask(uint64_t bitboard, uint64_t same_color) {
-        uint64_t moves = get_adjacent(get_adjacent(bitboard, Direction::UpLeft), Direction::Left)     |
-                         get_adjacent(get_adjacent(bitboard, Direction::DownLeft), Direction::Left)   |
-                         get_adjacent(get_adjacent(bitboard, Direction::UpRight), Direction::Right)   |
-                         get_adjacent(get_adjacent(bitboard, Direction::DownRight), Direction::Right) |
-                         get_adjacent(get_adjacent(bitboard, Direction::UpLeft), Direction::Up)       |
-                         get_adjacent(get_adjacent(bitboard, Direction::UpRight), Direction::Up)      |
-                         get_adjacent(get_adjacent(bitboard, Direction::DownLeft), Direction::Down)   |
-                         get_adjacent(get_adjacent(bitboard, Direction::DownRight), Direction::Down);
-        return moves & ~same_color;
+    inline uint64_t get_knight_mask(uint64_t bitboard) {
+        return get_adjacent(get_adjacent(bitboard, Direction::UpLeft), Direction::Left)     |
+               get_adjacent(get_adjacent(bitboard, Direction::DownLeft), Direction::Left)   |
+               get_adjacent(get_adjacent(bitboard, Direction::UpRight), Direction::Right)   |
+               get_adjacent(get_adjacent(bitboard, Direction::DownRight), Direction::Right) |
+               get_adjacent(get_adjacent(bitboard, Direction::UpLeft), Direction::Up)       |
+               get_adjacent(get_adjacent(bitboard, Direction::UpRight), Direction::Up)      |
+               get_adjacent(get_adjacent(bitboard, Direction::DownLeft), Direction::Down)   |
+               get_adjacent(get_adjacent(bitboard, Direction::DownRight), Direction::Down);
     }
 
     /**
      * Get the position of the pawn after advancing a single rank
      */
-    inline uint64_t get_pawn_advance_mask(uint64_t bitboard, uint64_t all_pieces, uint8_t color) {
-        return (color == 'w') ? get_adjacent(bitboard, Direction::Down) & ~all_pieces :
-                                get_adjacent(bitboard, Direction::Up) & ~all_pieces;
+    inline uint64_t get_pawn_advance_mask(uint64_t bitboard, uint64_t all_pieces, Color color) {
+        return (color == Color::White) ? 
+                    get_adjacent(bitboard, Direction::Down) & ~all_pieces :
+                    get_adjacent(bitboard, Direction::Up) & ~all_pieces;
     }
 
     /**
      * Get the position of the pawn after advancing 2 ranks
      */
-    inline uint64_t get_pawn_double_mask(uint64_t bitboard, uint64_t all_pieces, uint8_t color) {
+    inline uint64_t get_pawn_double_mask(uint64_t bitboard, uint64_t all_pieces, Color color) {
         // Move twice, assuming both cells are clear
         // Only move if target square is rank 4 or rank 5
         uint64_t advance = get_pawn_advance_mask(get_pawn_advance_mask(bitboard, all_pieces, color), all_pieces, color);
-        return (color == 'w') ? advance & rank4 : advance & rank5;
+        return (color == Color::White) ? advance & rank4 : advance & rank5;
     }
 
     /**
      * Get the all possible positions of the pawn if capturing (either en passant or regular)
      */
-    inline uint64_t get_pawn_capture_mask(uint64_t bitboard, uint8_t color) {
-        return (color == 'w') ? get_adjacent(bitboard, Direction::DownLeft) | get_adjacent(bitboard, Direction::DownRight) : 
-                                get_adjacent(bitboard, Direction::UpLeft) | get_adjacent(bitboard, Direction::UpRight);
+    inline uint64_t get_pawn_capture_mask(uint64_t bitboard, Color color) {
+        return (color == Color::White) ? 
+                    get_adjacent(bitboard, Direction::DownLeft) | get_adjacent(bitboard, Direction::DownRight) : 
+                    get_adjacent(bitboard, Direction::UpLeft) | get_adjacent(bitboard, Direction::UpRight);
     }
 
     /**
      * Get all possible moves for the rook
      */
-    inline uint64_t get_rook_mask(uint64_t bitboard, uint64_t same_color, uint64_t opposite_color) {
+    inline uint64_t get_rook_mask(uint64_t bitboard, uint64_t allies, uint64_t enemies) {
         const int shift = find_lsb(bitboard);
         const uint64_t rank_mask = 0xFF00000000000000 >> (56 - 8 * (shift/8));
         const uint64_t file_mask = 0x0101010101010101 << (7 & shift);
         
-        const uint64_t occupied = same_color | opposite_color;
+        const uint64_t occupied = allies | enemies;
         uint64_t rank_positive = get_ray_attack(bitboard, occupied & rank_mask) & rank_mask;
         uint64_t rank_negative = get_ray_attack(flip_horizontal(bitboard), 
                                                 flip_horizontal(occupied & rank_mask)) & rank_mask;
@@ -252,18 +254,18 @@ namespace chess {
         uint64_t file_negative = get_ray_attack(flip_vertical(bitboard), 
                                                 flip_vertical(occupied & file_mask)) & file_mask;
         return (rank_positive | flip_horizontal(rank_negative) | 
-                file_positive | flip_vertical(file_negative)) & ~same_color;
+                file_positive | flip_vertical(file_negative)) & ~allies;
     }
 
     /**
      * Get all possible moves for the bishop
      */
-    inline uint64_t get_bishop_mask(uint64_t bitboard, uint64_t same_color, uint64_t opposite_color) {
+    inline uint64_t get_bishop_mask(uint64_t bitboard, uint64_t allies, uint64_t enemies) {
         int shift = find_lsb(bitboard);
         uint64_t diagonal_mask = get_diagonal_mask(shift);
         uint64_t antidiag_mask = get_antidiag_mask(shift);
 
-        const uint64_t occupied = same_color | opposite_color;
+        const uint64_t occupied = allies | enemies;
         uint64_t diagonal_positive = get_ray_attack(bitboard, occupied & diagonal_mask) & diagonal_mask;
         uint64_t diagonal_negative = get_ray_attack(flip_vertical(bitboard), 
                                                     flip_vertical(occupied & diagonal_mask)) & flip_vertical(diagonal_mask);
@@ -272,36 +274,36 @@ namespace chess {
         uint64_t antidiag_negative = get_ray_attack(flip_vertical(bitboard), 
                                                     flip_vertical(occupied & antidiag_mask)) & flip_vertical(antidiag_mask);
         return (diagonal_positive | flip_vertical(diagonal_negative) | 
-                antidiag_positive | flip_vertical(antidiag_negative)) & ~same_color;
+                antidiag_positive | flip_vertical(antidiag_negative)) & ~allies;
     }
 
     /**
      * Get all possible moves for the queen
      * Simply perform bitwise OR on the rook and bishop masks
      */
-    inline uint64_t get_queen_mask(uint64_t bitboard, uint64_t same_color, uint64_t opposite_color) {
-        return get_rook_mask(bitboard, same_color, opposite_color) | 
-               get_bishop_mask(bitboard, same_color, opposite_color);
+    inline uint64_t get_queen_mask(uint64_t bitboard, uint64_t allies, uint64_t enemies) {
+        return get_rook_mask(bitboard, allies, enemies) | 
+               get_bishop_mask(bitboard, allies, enemies);
     }
 
     /**
      * Get the final positions for the king when castling
      */
-    inline uint64_t get_castling_mask(uint64_t all_pieces, int side) {
+    inline uint64_t get_castling_mask(uint64_t all_pieces, Castle side) {
         // BC and FG files must be clear on the end ranks
-        if(side & Castle::KingWhite) {
+        if(side & Castle::WK) {
             if(all_pieces & 0x60) return 0;
             return 0x40;
         }
-        else if(side & Castle::QueenWhite) {
+        else if(side & Castle::WQ) {
             if(all_pieces & 0xE) return 0;
             return 0x4;
         }
-        else if(side & Castle::KingBlack) {
+        else if(side & Castle::BK) {
             if(all_pieces & 0x6000000000000000) return 0;
             return 0x4000000000000000;
         }
-        else if(side & Castle::QueenBlack) {
+        else if(side & Castle::BQ) {
             if(all_pieces & 0x0E00000000000000) return 0;
             return 0x0400000000000000;
         }

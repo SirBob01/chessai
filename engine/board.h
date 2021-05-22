@@ -4,73 +4,47 @@
 #include <iostream>
 #include <string>
 
+#include "piece.h"
 #include "move.h"
 #include "bits.h"
 #include "util.h"
 
 namespace chess {
     /**
-     *   pieces are uniquely indexed on bitboard and piece weight arrays
-     */
-    enum Piece {
-        WhitePawn   = 0,
-        WhiteRook   = 1,
-        WhiteKnight = 2,
-        WhiteBishop = 3,
-        WhiteQueen  = 4,
-        WhiteKing   = 5,
-        
-        BlackPawn   = 6,
-        BlackRook   = 7,
-        BlackKnight = 8,
-        BlackBishop = 9,
-        BlackQueen  = 10,
-        BlackKing   = 11,
-
-        // Representing all white or all black pieces
-        White = 12,
-        Black = 13,
-        Empty = 15
-    };
-    static const std::string PieceChars = "PRNBQKprnbqk";
-    static const std::string PieceDisplay[] = {
-        "\u2659", "\u2656", "\u2658", "\u2657", "\u2655", "\u2654",
-        "\u265F", "\u265C", "\u265E", "\u265D", "\u265B", "\u265A"
-    };
-
-    /**
-     * Calculate the material score of the board state
-     */
-    const int piece_weights[] = {
-        1,  5,  3,  3,  9,  4, // White pieces
-        -1, -5, -3, -3, -9, -4  // Black pieces
-    };
-
-    /**
      * Represents a chess board's state
      */
     class Board {
         // Represent the positions of each of the 12 pieces on the board
         // Extra 2 bitboards represent white/black pieces in general
-        uint64_t _bitboards[14] = {0};
-        uint8_t _turn;            // w or b
-        uint8_t _castling_rights; // qkQK (from most to least significant bit)
-        Position _en_passant_target;
+        uint64_t _bitboards[12] = {0};
+        uint64_t _whiteboard = 0;
+        uint64_t _blackboard = 0;
+
+        // qkQK (from most to least significant bit)
+        uint8_t _castling_rights;
+        Square _en_passant_target;
+        Color _turn;
+
         int _halfmoves;
         int _fullmoves;
-
-        uint64_t _attackers;
+        
+        // Bitboard representing the attackers on each square (excluding king)
+        uint64_t _attackers = 0; 
         std::vector<Move> _legal_moves;
 
         /**
-         * Generate all pseudo-legal moves for each piece and add them to a move vector
+         * Generate all pseudo-legal moves for single step moves
          */
-        void generate_piece_moves(uint64_t bitboard, uint64_t(*mask_func)(uint64_t, uint64_t));
+        void generate_step_moves(uint64_t bitboard, bool is_king, uint64_t(*mask_func)(uint64_t));
 
-        // Slider moves need more information about the board
+        /**
+         *  Slider moves need more information about the board
+         */
         void generate_slider_moves(uint64_t bitboard, uint64_t(*mask_func)(uint64_t, uint64_t, uint64_t));
 
-        // Pawn function has special cases (ugh.)
+        /**
+         * Pawn function has special cases (ugh.)
+         */
         void generate_pawn_moves(uint64_t bitboard);
 
         // Castling
@@ -91,35 +65,35 @@ namespace chess {
         void register_move(Move move);
 
         /**
+         * Get the attack vectors for all of the opposing pieces
+         */
+        void get_attackers();
+
+        /**
          * Generate all legal moves
          * If move list is empty, then player is in checkmate
          */
         void generate_moves();
 
-        /**
-         * Test if a position is pinned
-         */
-        bool is_king_pinned(Position pos);
+        // /**
+        //  * Test if a position is pinned
+        //  */
+        // bool is_king_pinned(Square sq);
 
-        /**
-         * Check if moving a piece into a position will protect the king
-         */
-        bool is_protecting_king(Position pos);
+        // /**
+        //  * Check if moving a piece into a position will protect the king
+        //  */
+        // bool is_protecting_king(Square sq);
 
-        /**
-         * Check if removing opposing pieces from the board will protect the king
-         */
-        bool can_capture_attackers(uint64_t mask);
+        // /**
+        //  * Check if removing opposing pieces from the board will protect the king
+        //  */
+        // bool can_capture_attackers(uint64_t mask);
 
-        /**
-         * Test if an en passant move leads to a discovered check
-         */
-        bool en_passant_discovered(uint64_t color_mask, uint64_t opposite_color_mask);
-
-        /**
-         * Get the attack vectors for all of the opposing pieces
-         */
-        uint64_t get_attackers();
+        // /**
+        //  * Test if an en passant move leads to a discovered check
+        //  */
+        // bool en_passant_discovered(uint64_t color_mask, uint64_t opposite_color_mask);
         
     public:
         Board(std::string fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
@@ -135,31 +109,31 @@ namespace chess {
          * Positive values mean white has more material than black
          */
         int calculate_material();
-        
+
         /**
          * Get a piece on the board
          */
-        Piece get_at(Position pos);
+        Piece get_at(Square sq);
 
         /**
          * Set a piece on the board
          */
-        void set_at(Position pos, Piece piece);
+        void set_at(Square sq, Piece piece);
 
         /**
-         * Clear a square on the board
-         */
-        void clear_at(Position pos);
-
-        /**
-         * Get the piece at a coordinate
+         * Get a piece on the board by coordinates
          */
         Piece get_at_coords(int row, int col);
 
         /**
-         * Set the piece at a coordinate
+         * Set a piece on the board by coordinates
          */
         void set_at_coords(int row, int col, Piece piece);
+
+        /**
+         * Clear a square on the board
+         */
+        void clear_at(Square sq);
 
         /**
          * Execute a move and update internal state
@@ -170,12 +144,12 @@ namespace chess {
          * Generate a valid chess move given shift positions
          * Used to validate move positions from user input
          */
-        Move create_move(Position from, Position to); 
+        Move create_move(Square from, Square to); 
 
         /**
          * Get all legal moves available to the current player
          */
-        std::vector<Move> get_legal_moves();
+        std::vector<Move> get_moves();
 
         /**
          * Get the current number of halfmoves to enforce the 50-move rule
@@ -183,9 +157,9 @@ namespace chess {
         int get_halfmoves();
 
         /**
-         * Get the current turn (either 'w' or 'b')
+         * Get the current turn (either White or Black)
          */
-        char get_turn();
+        Color get_turn();
 
         /**
          * Print the board on the console

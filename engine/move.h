@@ -7,16 +7,33 @@ namespace chess {
     /**
      * A position on the board represented by a bitshift value (0 - 63)
      */
-    struct Position {
-        int shift;
+    struct Square {
+        int shift = -1;
 
-        Position() : shift(-1) {}
-        Position(int shift) : shift(shift) {}
-        Position(char file, char rank);
-        Position(std::string notation);
+        Square() : shift(-1) {};
+        Square(int shift) : shift(shift) {};
+        Square(char file, char rank);
+        Square(std::string notation);
 
-        std::string standard_notation();
-        uint64_t get_mask();
+        inline std::string standard_notation() {
+            int row = shift / 8;
+            int col = shift % 8;
+            char rank = row + '1';
+            char field = col + 'a';
+            return std::string({field, rank});
+        };
+
+        inline uint64_t get_mask() {
+            return (1ULL << shift);
+        };
+
+        inline bool is_invalid() {
+            return shift == -1;
+        }
+
+        inline bool operator==(Square other) {
+            return shift == other.shift;
+        }
     };
 
     /**
@@ -28,7 +45,7 @@ namespace chess {
         EnPassant   = 1 << 1,
         PawnAdvance = 1 << 2,
         PawnDouble  = 1 << 3,
-        Castle      = 1 << 4,
+        Castling    = 1 << 4,
         KnightPromo = 1 << 5,
         QueenPromo  = 1 << 6,
         BishopPromo = 1 << 7,
@@ -40,21 +57,23 @@ namespace chess {
      * The different castling types
      */
     enum Castle {
-        KingWhite  = 1,
-        QueenWhite = 1 << 1,
-        KingBlack  = 1 << 2,
-        QueenBlack = 1 << 3,
+        WK   = 1,
+        WQ   = 1 << 1,
+        BK   = 1 << 2,
+        BQ   = 1 << 3,
     };
 
     /**
      * Container of a chess move
      */
     struct Move {
-        Position from;
-        Position to;
-        unsigned flags = MoveFlag::Quiet;
+        Square from;
+        Square to;
+        unsigned flags = MoveFlag::Invalid;
 
-        bool is_invalid();
+        inline bool is_invalid() {
+            return flags & MoveFlag::Invalid;
+        };
     };
 }
 
