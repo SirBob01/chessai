@@ -65,9 +65,10 @@ namespace chess {
         void register_move(Move move);
 
         /**
-         * Get the attack vectors for all of the opposing pieces
+         * Get the pieces attacking the king
          */
-        void get_attackers();
+        uint64_t get_attackers(uint64_t allies_include = 0, uint64_t allies_exclude = 0,
+                               uint64_t enemies_exclude = 0);
 
         /**
          * Generate all legal moves

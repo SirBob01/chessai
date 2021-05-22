@@ -2,6 +2,7 @@
 #define CHESS_MOVE_H_
 
 #include <string>
+#include <cassert>
 
 namespace chess {
     /**
@@ -16,6 +17,7 @@ namespace chess {
         Square(std::string notation);
 
         inline std::string standard_notation() {
+            assert(!is_invalid());
             int row = shift / 8;
             int col = shift % 8;
             char rank = row + '1';

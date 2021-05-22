@@ -42,17 +42,48 @@ namespace chess {
         _halfmoves = stoi(fields[4]);
         _fullmoves = stoi(fields[5]);
         
-        _attackers = 0;
-
-        get_attackers();
+        _attackers = get_attackers();
         generate_moves();
     }
 
     bool Board::is_legal(Move move) {
-        // TODO: Implement check logic
         Piece king = {PieceType::King, _turn};
         uint64_t kingbit = _bitboards[king.get_piece_index()];
-        return true;
+        uint64_t from = move.from.get_mask();
+        uint64_t to = move.to.get_mask();
+        
+        // Handle en passant
+        if(move.flags & MoveFlag::EnPassant) {
+            int rankd = move.to.shift - move.from.shift;
+            int dir = (rankd > 0) - (rankd < 0); 
+            Square target_pawn(_en_passant_target.shift - (dir * 8));
+            
+            return (get_attackers(to, from, target_pawn.get_mask()) & kingbit) == 0;
+        }
+
+        // Castling is only valid if 
+        // - from is not in check
+        // - to is not in check (already filtered out)
+        // - squares passed through are not in check
+        if(move.flags & MoveFlag::Castling) {
+            if(kingbit & _attackers) {
+                return false;
+            }
+            int rankd = move.to.shift - move.from.shift;
+            int dir = (rankd > 0) - (rankd < 0);
+            Square pass_through(move.to.shift - dir);
+            if(_attackers & pass_through.get_mask()) {
+                return false;
+            }
+            return true;
+        }
+
+        // Attack positions after move has been made
+        uint64_t new_attackers = get_attackers(to, from);
+        if(from & kingbit) {
+            return (new_attackers & to) == 0;
+        }
+        return (new_attackers & kingbit) == 0;
     }
 
     void Board::register_move(Move move) {
@@ -66,6 +97,12 @@ namespace chess {
         uint64_t enemies = _bitboards[PieceType::NPieces * 2 + !_turn];
         uint64_t all_pieces = allies | enemies;
         
+        MoveFlag promotions[4] = {
+            MoveFlag::KnightPromo,
+            MoveFlag::QueenPromo,
+            MoveFlag::BishopPromo,
+            MoveFlag::RookPromo
+        };
         uint64_t en_passant_mask = 0;
         if(!_en_passant_target.is_invalid()) {
             en_passant_mask = _en_passant_target.get_mask();
@@ -74,32 +111,68 @@ namespace chess {
         uint64_t advance_board = get_pawn_advance_mask(bitboard, all_pieces, _turn);
         while(advance_board) {
             uint64_t move = advance_board & (-advance_board);
-            Move moveobj = {find_lsb(bitboard), find_lsb(move), MoveFlag::Quiet | MoveFlag::PawnAdvance};
-            register_move(moveobj);
+            unsigned flags = MoveFlag::Quiet | MoveFlag::PawnAdvance;
+            if(move & end_ranks) {
+                for(int i = 0; i < 4; i++) {
+                    Move moveobj = {find_lsb(bitboard), find_lsb(move), flags | promotions[i]};
+                    register_move(moveobj);
+                }
+            }
+            else {
+                Move moveobj = {find_lsb(bitboard), find_lsb(move), flags};
+                register_move(moveobj);
+            }
             advance_board &= (advance_board - 1);
         }
 
         uint64_t double_board = get_pawn_double_mask(bitboard, all_pieces, _turn);
         while(double_board) {
             uint64_t move = double_board & (-double_board);
-            Move moveobj = {find_lsb(bitboard), find_lsb(move), MoveFlag::Quiet | MoveFlag::PawnAdvance | MoveFlag::PawnDouble};
-            register_move(moveobj);
+            unsigned flags = MoveFlag::Quiet | MoveFlag::PawnAdvance | MoveFlag::PawnDouble;
+            if(move & end_ranks) {
+                for(int i = 0; i < 4; i++) {
+                    Move moveobj = {find_lsb(bitboard), find_lsb(move), flags | promotions[i]};
+                    register_move(moveobj);
+                }
+            }
+            else {
+                Move moveobj = {find_lsb(bitboard), find_lsb(move), flags};
+                register_move(moveobj);
+            }
             double_board &= (double_board - 1);
         }
 
         uint64_t capture_board = get_pawn_capture_mask(bitboard, _turn) & enemies;
         while(capture_board) {
             uint64_t move = capture_board & (-capture_board);
-            Move moveobj = {find_lsb(bitboard), find_lsb(move), MoveFlag::Capture};
-            register_move(moveobj);
+            unsigned flags = MoveFlag::Capture;
+            if(move & end_ranks) {
+                for(int i = 0; i < 4; i++) {
+                    Move moveobj = {find_lsb(bitboard), find_lsb(move), flags | promotions[i]};
+                    register_move(moveobj);
+                }
+            }
+            else {
+                Move moveobj = {find_lsb(bitboard), find_lsb(move), flags};
+                register_move(moveobj);
+            }
             capture_board &= (capture_board - 1);
         }
 
         uint64_t ep_board = get_pawn_capture_mask(bitboard, _turn) & en_passant_mask;
         while(ep_board) {
             uint64_t move = ep_board & (-ep_board);
-            Move moveobj = {find_lsb(bitboard), find_lsb(move), MoveFlag::Capture | MoveFlag::EnPassant};
-            register_move(moveobj);
+            unsigned flags = MoveFlag::Capture | MoveFlag::EnPassant;
+            if(move & end_ranks) {
+                for(int i = 0; i < 4; i++) {
+                    Move moveobj = {find_lsb(bitboard), find_lsb(move), flags | promotions[i]};
+                    register_move(moveobj);
+                }
+            }
+            else {
+                Move moveobj = {find_lsb(bitboard), find_lsb(move), flags};
+                register_move(moveobj);
+            }
             ep_board &= (ep_board - 1);
         }
     }
@@ -169,7 +242,8 @@ namespace chess {
         while(rights) {
             Castle side = static_cast<Castle>(rights & (-rights));
             
-            uint64_t mask = get_castling_mask(all_pieces, side);
+            // King cannot move in range of his attackers
+            uint64_t mask = get_castling_mask(all_pieces, side) & ~_attackers;
             if(mask) {
                 int diff = find_lsb(mask) - from.shift;
                 Square to(find_lsb(mask));
@@ -179,48 +253,55 @@ namespace chess {
         }
     }
 
-    void Board::get_attackers() { 
-        // Generate attack vectors for targets
-        // Exclude the king from the target list for case when king is still aligned
-        // with sliding piece, but further moves away from the attack vector
+    uint64_t Board::get_attackers(uint64_t allies_include, uint64_t allies_exclude,
+                                  uint64_t enemies_exclude) {
+        // Generate attack vectors for sliding pieces to test if king is in check
         Color opponent = static_cast<Color>(!_turn);
 
         Piece king = {PieceType::King, _turn};
-        uint64_t source_squares = _bitboards[PieceType::NPieces * 2 + opponent];
-        uint64_t target_squares = _bitboards[PieceType::NPieces * 2 + _turn] & ~_bitboards[king.get_piece_index()];
+        uint64_t source_mask = ~enemies_exclude & ~allies_include;
+        uint64_t source_squares = _bitboards[PieceType::NPieces * 2 + opponent] & source_mask;
+        uint64_t target_squares = _bitboards[PieceType::NPieces * 2 + _turn] & ~_bitboards[king.get_piece_index()] 
+                                                                             & ~allies_exclude
+                                                                             | allies_include;
 
+        uint64_t attacked = 0;
         for(int type = 0; type < PieceType::NPieces; type++) {
             Piece piece = {static_cast<PieceType>(type), opponent};
-            uint64_t bitboard = _bitboards[piece.get_piece_index()];
-            if(type == PieceType::Pawn) {
-                _attackers |= get_pawn_capture_mask(bitboard, opponent);
-            }
-            else if(type == PieceType::Knight) {
-                _attackers |= get_knight_mask(bitboard) & ~source_squares;
-            }
-            else if(type == PieceType::King) {
-                _attackers |= get_king_mask(bitboard) & ~source_squares;
-            }
-            else {
-                while(bitboard) {
-                    uint64_t unit = bitboard & (-bitboard);
-                    switch(type) {
-                        case PieceType::Bishop:
-                            _attackers |= get_bishop_mask(unit, source_squares, target_squares);
-                            break;
-                        case PieceType::Rook:
-                            _attackers |= get_rook_mask(unit, source_squares, target_squares);
-                            break;
-                        case PieceType::Queen:
-                            _attackers |= get_queen_mask(unit, source_squares, target_squares);
-                            break;
-                        default:
-                            break;
+            uint64_t bitboard = _bitboards[piece.get_piece_index()] & source_mask;
+
+            switch(piece.type) {
+                case PieceType::Pawn:
+                    attacked |= get_pawn_capture_mask(bitboard, opponent);
+                    break;
+                case PieceType::Knight:
+                    attacked |= get_knight_mask(bitboard) & ~source_squares;
+                    break;
+                case PieceType::King:
+                    attacked |= get_king_mask(bitboard) & ~source_squares;
+                    break;
+                default:
+                    while(bitboard) {
+                        uint64_t unit = bitboard & (-bitboard);
+                        switch(piece.type) {
+                            case PieceType::Bishop:
+                                attacked |= get_bishop_mask(unit, source_squares, target_squares);
+                                break;
+                            case PieceType::Rook:
+                                attacked |= get_rook_mask(unit, source_squares, target_squares);
+                                break;
+                            case PieceType::Queen:
+                                attacked |= get_queen_mask(unit, source_squares, target_squares);
+                                break;
+                            default:
+                                break;
+                        }
+                        bitboard &= (bitboard - 1);
                     }
-                    bitboard &= (bitboard - 1);
-                }
-            }   
+                    break;
+            }
         }
+        return attacked;
     }
 
     void Board::generate_moves() {
@@ -281,7 +362,7 @@ namespace chess {
             if(row) fen += '/';
         }
         fen += " ";
-        fen += static_cast<char>(_turn);
+        fen += _turn == Color::White ? "w" : "b";
 
         std::string castling_rights = "";
         
@@ -374,12 +455,12 @@ namespace chess {
 
         if(_castling_rights & (king_side | queen_side)) {
             if(piece.type == PieceType::King) {
-                _castling_rights ^= (king_side | queen_side);
+                _castling_rights &= ~(king_side | queen_side);
             }
             else if(piece.type == PieceType::Rook) {
                 uint64_t mask = move.from.get_mask();
-                if(mask & fileA) _castling_rights ^= queen_side;
-                else if(mask & fileH) _castling_rights ^= king_side;
+                if(mask & fileA) _castling_rights &= ~queen_side;
+                else if(mask & fileH) _castling_rights &= ~king_side;
             }
         }
         
@@ -451,7 +532,7 @@ namespace chess {
         }
         _turn = static_cast<Color>(!_turn);
 
-        get_attackers();
+        _attackers = get_attackers();
         generate_moves();
     }
 
