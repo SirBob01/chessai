@@ -61,10 +61,9 @@ namespace chess {
             return (get_attackers(to, from, target_pawn.get_mask()) & kingbit) == 0;
         }
 
-        // Castling is only valid if 
-        // - from is not in check
-        // - to is not in check (already filtered out)
-        // - squares passed through are not in check
+        // TODO: Fix castling check
+        // Remove relevant rook from board as well when calculating attackers
+        // i.e., king could be in check after the castling (discovered check)
         if(move.flags & MoveFlag::Castling) {
             if(kingbit & _attackers) {
                 return false;
@@ -77,8 +76,8 @@ namespace chess {
             }
             return true;
         }
-
-        // Attack positions after move has been made
+        
+        // Attacked squares after move has been made
         uint64_t new_attackers = get_attackers(to, from);
         if(from & kingbit) {
             return (new_attackers & to) == 0;
