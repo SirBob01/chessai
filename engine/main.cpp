@@ -56,6 +56,11 @@ void debug_command() {
     chess::Move move = {};
     while(true) {
         uint64_t nodes = perft(b, depth, depth, true);
+        if(depth == 1) {
+            for(auto &m : b.get_moves()) {
+                std::cout << m.from.standard_notation() << m.to.standard_notation() << "\n";
+            }
+        }
         std::cout << "Evaluated " << nodes << " nodes\n";
 
         while(move.is_invalid()) {
@@ -69,6 +74,7 @@ void debug_command() {
         b.print();
         std::cout << b.generate_fen() << "\n";
         move = {};
+        depth--;
     }
 }
 
