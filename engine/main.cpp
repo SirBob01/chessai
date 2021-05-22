@@ -4,7 +4,7 @@
 
 uint64_t perft(chess::Board b, int depth, int max_depth, bool verbose) {
     uint64_t nodes = 0;
-    auto moves = b.get_legal_moves();
+    auto moves = b.get_moves();
     if(depth == 1) {
         return moves.size();
     }
@@ -48,14 +48,12 @@ void debug_command() {
     std::cout << "Enter perft depth: ";
     std::cin >> depth;
 
-    std::string castle = "4k2r/8/8/8/8/8/8/r3K2R w - - 0 1";
-    std::string double_pin = "4k3/6N1/5b2/4R3/8/8/8/4K3 b - - 0 1";
     chess::Board b;
     b.print();
     std::cout << b.generate_fen() << "\n";
 
     std::string move_input;
-    chess::Move move = {chess::Position(), chess::Position(), chess::MoveFlag::Invalid};
+    chess::Move move = {};
     while(true) {
         uint64_t nodes = perft(b, depth, depth, true);
         std::cout << "Evaluated " << nodes << " nodes\n";
@@ -65,25 +63,12 @@ void debug_command() {
             std::cin >> move_input;
             std::string from = move_input.substr(0, 2);
             std::string to = move_input.substr(2, 2);
-            move = b.create_move(chess::Position(from[0], from[1]), chess::Position(to[0], to[1]));
+            move = b.create_move(chess::Square(from), chess::Square(to));
         }
         b.execute_move(move);
         b.print();
         std::cout << b.generate_fen() << "\n";
-        move = {chess::Position(), chess::Position(), chess::MoveFlag::Invalid};
-    }
-}
-
-void test_castling_command() {
-    std::string fen = "r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1";
-    chess::Board b("r3k2r/8/8/8/8/8/8/R3K2R b KQkq - 0 1");
-    std::cout << fen << "\n" << b.generate_fen() <<"\n";
-    auto moves = b.get_legal_moves();
-    for(auto &move : moves) {
-        chess::Board c = b;
-        c.execute_move(move);
-        if(move.flags & chess::MoveFlag::Castle) c.print();
-        // std::cout << c.generate_fen() << "\n";
+        move = {};
     }
 }
 
@@ -98,9 +83,6 @@ int main() {
         }
         else if(command == "debug") {
             debug_command();
-        }
-        else if(command == "castle") {
-            test_castling_command();
         }
         else if(command == "quit") {
             break;
