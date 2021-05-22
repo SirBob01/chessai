@@ -291,21 +291,23 @@ namespace chess {
      */
     inline uint64_t get_castling_mask(uint64_t all_pieces, Castle side) {
         // BC and FG files must be clear on the end ranks
-        if(side & Castle::WK) {
-            if(all_pieces & 0x60) return 0;
-            return 0x40;
-        }
-        else if(side & Castle::WQ) {
-            if(all_pieces & 0xE) return 0;
-            return 0x4;
-        }
-        else if(side & Castle::BK) {
-            if(all_pieces & 0x6000000000000000) return 0;
-            return 0x4000000000000000;
-        }
-        else if(side & Castle::BQ) {
-            if(all_pieces & 0x0E00000000000000) return 0;
-            return 0x0400000000000000;
+        switch(side) {
+            case Castle::WK:
+                if(all_pieces & 0x60) return 0;
+                return 0x40;
+                break;
+            case Castle::WQ:
+                if(all_pieces & 0xE) return 0;
+                return 0x4;
+                break;
+            case Castle::BK:
+                if(all_pieces & 0x6000000000000000) return 0;
+                return 0x4000000000000000;
+                break;
+            case Castle::BQ:
+                if(all_pieces & 0x0E00000000000000) return 0;
+                return 0x0400000000000000;
+                break;
         }
         return 0;
     }
