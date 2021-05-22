@@ -38,7 +38,7 @@ namespace chess {
         void generate_step_moves(uint64_t bitboard, bool is_king, uint64_t(*mask_func)(uint64_t));
 
         /**
-         *  Slider moves need more information about the board
+         * Slider moves need more information about the board
          */
         void generate_slider_moves(uint64_t bitboard, uint64_t(*mask_func)(uint64_t, uint64_t, uint64_t));
 
@@ -47,7 +47,9 @@ namespace chess {
          */
         void generate_pawn_moves(uint64_t bitboard);
 
-        // Castling
+        /**
+         * Create castling moves
+         */
         void generate_castling_moves(uint64_t bitboard);
 
         /**
@@ -75,26 +77,6 @@ namespace chess {
          * If move list is empty, then player is in checkmate
          */
         void generate_moves();
-
-        // /**
-        //  * Test if a position is pinned
-        //  */
-        // bool is_king_pinned(Square sq);
-
-        // /**
-        //  * Check if moving a piece into a position will protect the king
-        //  */
-        // bool is_protecting_king(Square sq);
-
-        // /**
-        //  * Check if removing opposing pieces from the board will protect the king
-        //  */
-        // bool can_capture_attackers(uint64_t mask);
-
-        // /**
-        //  * Test if an en passant move leads to a discovered check
-        //  */
-        // bool en_passant_discovered(uint64_t color_mask, uint64_t opposite_color_mask);
         
     public:
         Board(std::string fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
