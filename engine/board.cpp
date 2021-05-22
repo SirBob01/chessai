@@ -61,17 +61,12 @@ namespace chess {
             return (get_attackers(to, from, target_pawn.get_mask()) & kingbit) == 0;
         }
 
-        // TODO: Fix castling check
-        // Remove relevant rook from board as well when calculating attackers
-        // i.e., king could be in check after the castling (discovered check)
+        // Handle castling
         if(move.flags & MoveFlag::Castling) {
-            if(kingbit & _attackers) {
-                return false;
-            }
             int rankd = move.to.shift - move.from.shift;
             int dir = (rankd > 0) - (rankd < 0);
             Square pass_through(move.to.shift - dir);
-            if(_attackers & pass_through.get_mask()) {
+            if((from & _attackers) || (_attackers & pass_through.get_mask()) || (to & _attackers)) {
                 return false;
             }
             return true;
@@ -304,6 +299,7 @@ namespace chess {
     }
 
     void Board::generate_moves() {
+        _legal_moves.clear();
         for(int type = 0; type < PieceType::NPieces; type++) {
             Piece piece = {
                 static_cast<PieceType>(type), 
@@ -452,6 +448,9 @@ namespace chess {
         Castle queen_side = (_turn == Color::White) ? (Castle::WQ) : (Castle::BQ);
         Castle king_side = (_turn == Color::White) ? (Castle::WK) : (Castle::BK);
 
+        Castle opp_queen_side = (_turn == Color::Black) ? (Castle::WQ) : (Castle::BQ);
+        Castle opp_king_side = (_turn == Color::Black) ? (Castle::WK) : (Castle::BK);
+
         if(_castling_rights & (king_side | queen_side)) {
             if(piece.type == PieceType::King) {
                 _castling_rights &= ~(king_side | queen_side);
@@ -461,6 +460,13 @@ namespace chess {
                 if(mask & fileA) _castling_rights &= ~queen_side;
                 else if(mask & fileH) _castling_rights &= ~king_side;
             }
+        }
+
+        // Unset castling opponent flags if pieces were captured
+        if(target.type == PieceType::Rook) {
+            uint64_t mask = move.to.get_mask();
+            if(mask & fileA) _castling_rights &= ~opp_queen_side;
+            else if(mask & fileH) _castling_rights &= ~opp_king_side;
         }
         
         // Move to target square and handle promotions
