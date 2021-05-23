@@ -54,7 +54,7 @@ void debug_command() {
 
     std::string move_input;
     chess::Move move = {};
-    while(true) {
+    while(depth) {
         uint64_t nodes = perft(b, depth, depth, true);
         if(depth == 1) {
             for(auto &m : b.get_moves()) {
