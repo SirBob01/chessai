@@ -487,8 +487,9 @@ namespace chess {
         // Unset castling opponent flags if pieces were captured
         if(target.type == PieceType::Rook) {
             uint64_t mask = move.to.get_mask();
-            if(mask & fileA) state->_castling_rights &= ~opp_queen_side;
-            else if(mask & fileH) state->_castling_rights &= ~opp_king_side;
+            uint64_t rank = (_turn == Color::White) ? 0xFF00000000000000 : 0xFF;
+            if(mask & fileA & rank) state->_castling_rights &= ~opp_queen_side;
+            else if(mask & fileH & rank) state->_castling_rights &= ~opp_king_side;
         }
         
         // Move to target square and handle promotions
@@ -577,10 +578,34 @@ namespace chess {
         return state->prev == nullptr;
     }
 
-    Move Board::create_move(Square from, Square to) {
+    Move Board::create_move(Square from, Square to, char promotion) {
         for(auto &move : state->_legal_moves) {
             if(move.from == from && move.to == to) {
-                return move;
+                if(move.flags & (MoveFlag::RookPromo   | 
+                                 MoveFlag::KnightPromo | 
+                                 MoveFlag::BishopPromo | 
+                                 MoveFlag::QueenPromo)) {
+                    switch(promotion) {
+                        case 'r':
+                            if(move.flags & MoveFlag::RookPromo) return move;
+                            break;
+                        case 'n':
+                            if(move.flags & MoveFlag::KnightPromo) return move;
+                            break;
+                        case 'b':
+                            if(move.flags & MoveFlag::BishopPromo) return move;
+                            break;
+                        case 'q':
+                            if(move.flags & MoveFlag::QueenPromo) return move;
+                            break;    
+                        default:
+                            return {};
+                            break;
+                    }
+                }
+                else {
+                    return move;
+                }
             }
         }
         return {};

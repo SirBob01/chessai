@@ -13,7 +13,7 @@ uint64_t perft(chess::Board &b, int depth, int max_depth, bool verbose) {
         uint64_t children = perft(b, depth-1, max_depth, verbose);
         b.undo_move();
         if(depth == max_depth && verbose) {
-            std::cout << move.from.standard_notation() << move.to.standard_notation() << ": " << children << "\n";
+            std::cout << move.standard_notation() << ": " << children << "\n";
         }
         nodes += children;
     }
@@ -58,7 +58,7 @@ void debug_command() {
         uint64_t nodes = perft(b, depth, depth, true);
         if(depth == 1) {
             for(auto &m : b.get_moves()) {
-                std::cout << m.from.standard_notation() << m.to.standard_notation() << "\n";
+                std::cout << m.standard_notation() << "\n";
             }
         }
         std::cout << "Evaluated " << nodes << " nodes\n";
@@ -68,7 +68,11 @@ void debug_command() {
             std::cin >> move_input;
             std::string from = move_input.substr(0, 2);
             std::string to = move_input.substr(2, 2);
-            move = b.create_move(chess::Square(from), chess::Square(to));
+            char promotion = 0;
+            if(move_input.length() == 5) {
+                promotion = move_input[4];
+            }
+            move = b.create_move(chess::Square(from), chess::Square(to), promotion);
         }
         b.execute_move(move);
         b.print();

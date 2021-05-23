@@ -154,7 +154,7 @@ namespace chess {
          * Generate a valid chess move given shift positions
          * Used to validate move positions from user input
          */
-        Move create_move(Square from, Square to); 
+        Move create_move(Square from, Square to, char promotion = 0); 
 
         /**
          * Get all legal moves available to the current player
