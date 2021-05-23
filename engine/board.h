@@ -136,13 +136,19 @@ namespace chess {
 
         /**
          * Execute a move and update internal state
+         * Assumes move is legal
          */
-        bool execute_move(Move move);
+        void execute_move(Move move);
 
         /**
          * Return board to the previous state
          */
-        bool undo_move();
+        void undo_move();
+
+        /**
+         * Checks if the board is already at the initial state (cannot undo)
+         */
+        bool is_initial();
 
         /**
          * Generate a valid chess move given shift positions

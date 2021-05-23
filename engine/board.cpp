@@ -456,10 +456,7 @@ namespace chess {
         }
     }
 
-    bool Board::execute_move(Move move) {
-        if(move.is_invalid()) {
-            return false;
-        }
+    void Board::execute_move(Move move) {
         state->next = state->copy(); // Generate copy of the state
         state->next->prev = state;
         state = state->next;
@@ -564,14 +561,9 @@ namespace chess {
 
         state->_attackers = get_attackers();
         generate_moves();
-
-        return true;
     }
 
-    bool Board::undo_move() {
-        if(!state->prev) {
-            return false;
-        }
+    void Board::undo_move() {
         state = state->prev;
         delete state->next;
 
@@ -579,7 +571,10 @@ namespace chess {
         if(_turn == Color::Black) {
             _fullmoves--;
         }
-        return true;
+    }
+
+    bool Board::is_initial() {
+        return state->prev == nullptr;
     }
 
     Move Board::create_move(Square from, Square to) {
