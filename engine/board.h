@@ -151,6 +151,11 @@ namespace chess {
         bool is_initial();
 
         /**
+         * Checks if the current player is in checkmate
+         */
+        bool is_checkmate();
+
+        /**
          * Generate a valid chess move given shift positions
          * Used to validate move positions from user input
          */

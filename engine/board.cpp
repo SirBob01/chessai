@@ -578,6 +578,10 @@ namespace chess {
         return state->prev == nullptr;
     }
 
+    bool Board::is_checkmate() {
+        return state->_legal_moves.size() == 0;
+    }
+
     Move Board::create_move(Square from, Square to, char promotion) {
         for(auto &move : state->_legal_moves) {
             if(move.from == from && move.to == to) {
