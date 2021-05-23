@@ -11,9 +11,11 @@
 
 namespace chess {
     /**
-     * Represents a chess board's state
+     * Linked list representing chronological board state
+     * Allows forward and backward movement in time (undo/redo moves)
+     * Stores information that can be difficult to undo when changed (e.g., castling rights)
      */
-    class Board {
+    struct BoardState {
         // Represent the positions of each of the 12 pieces on the board
         // Extra 2 bitboards represent white/black pieces in general
         uint64_t _bitboards[14] = {0};
@@ -21,14 +23,28 @@ namespace chess {
         // qkQK (from most to least significant bit)
         uint8_t _castling_rights;
         Square _en_passant_target;
-        Color _turn;
 
+        // Unlike fullmoves, halfmoves depends on state of the board (pawn advance or capture reset)
         int _halfmoves;
-        int _fullmoves;
         
         // Bitboard representing the attackers on each square (excluding king)
         uint64_t _attackers = 0; 
         std::vector<Move> _legal_moves;
+
+        BoardState *next = nullptr;
+        BoardState *prev = nullptr;
+
+        BoardState *copy();
+    };
+
+    /**
+     * Represents a chess board's state
+     */
+    class Board {
+        BoardState *state;
+
+        Color _turn;
+        int _fullmoves;
 
         /**
          * Generate all pseudo-legal moves for single step moves
@@ -80,6 +96,8 @@ namespace chess {
         Board(std::string fen_string="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         Board(Board &other) : Board(other.generate_fen()) {};
 
+        ~Board();
+
         /**
          * Generate a FEN string of the current state for serialization
          */
@@ -119,7 +137,12 @@ namespace chess {
         /**
          * Execute a move and update internal state
          */
-        void execute_move(Move move);
+        bool execute_move(Move move);
+
+        /**
+         * Return board to the previous state
+         */
+        bool undo_move();
 
         /**
          * Generate a valid chess move given shift positions

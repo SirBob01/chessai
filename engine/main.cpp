@@ -2,16 +2,16 @@
 #include <chrono>
 #include "board.h"
 
-uint64_t perft(chess::Board b, int depth, int max_depth, bool verbose) {
+uint64_t perft(chess::Board &b, int depth, int max_depth, bool verbose) {
     uint64_t nodes = 0;
     auto moves = b.get_moves();
     if(depth == 1) {
         return moves.size();
     }
     for(auto &move : moves) {
-        chess::Board c = b;
-        c.execute_move(move);
-        uint64_t children = perft(c, depth-1, max_depth, verbose);
+        b.execute_move(move);
+        uint64_t children = perft(b, depth-1, max_depth, verbose);
+        b.undo_move();
         if(depth == max_depth && verbose) {
             std::cout << move.from.standard_notation() << move.to.standard_notation() << ": " << children << "\n";
         }
