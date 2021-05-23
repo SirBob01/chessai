@@ -239,7 +239,6 @@ namespace chess {
             // King cannot move in range of his attackers
             uint64_t mask = get_castling_mask(all_pieces, side) & ~_attackers;
             if(mask) {
-                int diff = find_lsb(mask) - from.shift;
                 Square to(find_lsb(mask));
                 register_move({from, to, MoveFlag::Quiet | MoveFlag::Castling});
             }
@@ -255,9 +254,9 @@ namespace chess {
         Piece king = {PieceType::King, _turn};
         uint64_t source_mask = ~enemies_exclude & ~allies_include;
         uint64_t source_squares = _bitboards[PieceType::NPieces * 2 + opponent] & source_mask;
-        uint64_t target_squares = _bitboards[PieceType::NPieces * 2 + _turn] & ~_bitboards[king.get_piece_index()] 
-                                                                             & ~allies_exclude
-                                                                             | allies_include;
+        uint64_t target_squares = (_bitboards[PieceType::NPieces * 2 + _turn] | allies_include)
+                                                                              & ~_bitboards[king.get_piece_index()] 
+                                                                              & ~allies_exclude;
 
         uint64_t attacked = 0;
         for(int type = 0; type < PieceType::NPieces; type++) {
@@ -430,8 +429,7 @@ namespace chess {
         _bitboards[12] &= mask;
         _bitboards[13] &= mask;
 
-        uint8_t piece = 0;
-        for(piece; piece < 14; piece++) {
+        for(uint8_t piece = 0; piece < 14; piece++) {
             if((_bitboards[piece] >> sq.shift) & 1ULL) {
                 _bitboards[piece] &= mask;
                 break;

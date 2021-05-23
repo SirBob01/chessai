@@ -16,9 +16,7 @@ namespace chess {
     class Board {
         // Represent the positions of each of the 12 pieces on the board
         // Extra 2 bitboards represent white/black pieces in general
-        uint64_t _bitboards[12] = {0};
-        uint64_t _whiteboard = 0;
-        uint64_t _blackboard = 0;
+        uint64_t _bitboards[14] = {0};
 
         // qkQK (from most to least significant bit)
         uint8_t _castling_rights;
