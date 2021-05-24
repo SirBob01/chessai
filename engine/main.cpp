@@ -88,6 +88,10 @@ void play_command() {
     std::string move_input;
     while(!b.is_checkmate()) {
         b.print();
+        std::cout << b.generate_fen() << "\n";
+        if(b.is_check()) {
+            std::cout << "Check!\n";
+        }
         while(move.is_invalid()) {
             std::cout << "Enter a move> ";
             std::cin >> move_input;
@@ -121,6 +125,9 @@ void play_command() {
             move = {};
         }
     }
+    b.print();
+    std::cout << b.generate_fen() << "\n";
+    std::cout << (b.get_turn() == chess::Color::White ? "Black" : "White") << " wins!\n";
 }
 
 int main() {
