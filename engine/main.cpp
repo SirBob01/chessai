@@ -82,6 +82,47 @@ void debug_command() {
     }
 }
 
+void play_command() {
+    chess::Board b;
+    chess::Move move;
+    std::string move_input;
+    while(!b.is_checkmate()) {
+        b.print();
+        while(move.is_invalid()) {
+            std::cout << "Enter a move> ";
+            std::cin >> move_input;
+            if(move_input == "undo") {
+                if(!b.is_initial()) {
+                    b.undo_move();
+                    break;
+                }
+            }
+            else if(move_input == "redo") {
+                if(!b.is_latest()) {
+                    b.redo_move();
+                    break;
+                }
+            }
+            else if(move_input == "stop") {
+                return;
+            }
+            else {
+                std::string from = move_input.substr(0, 2);
+                std::string to = move_input.substr(2, 2);
+                char promotion = 0;
+                if(move_input.length() == 5) {
+                    promotion = move_input[4];
+                }
+                move = b.create_move(chess::Square(from), chess::Square(to), promotion);
+            }
+        }
+        if(!move.is_invalid()) {
+            b.execute_move(move);
+            move = {};
+        }
+    }
+}
+
 int main() {
     std::cout << "Chess Engine C++ v.1.0\n";
     std::string command;
@@ -93,6 +134,9 @@ int main() {
         }
         else if(command == "debug") {
             debug_command();
+        }
+        else if(command == "play") {
+            play_command();
         }
         else if(command == "quit") {
             break;

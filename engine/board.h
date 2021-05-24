@@ -142,13 +142,25 @@ namespace chess {
 
         /**
          * Return board to the previous state
+         * Only perform if board is not in the initial state
          */
         void undo_move();
+
+        /**
+         * Move board state forward in time
+         * Only perform if board is not in the latest state
+         */
+        void redo_move();
 
         /**
          * Checks if the board is already at the initial state (cannot undo)
          */
         bool is_initial();
+
+        /**
+         * Checks if the board is already at the latest state (cannot redo)
+         */
+        bool is_latest();
 
         /**
          * Checks if the current player is in checkmate

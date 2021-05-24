@@ -62,6 +62,20 @@ namespace chess {
     }
 
     Board::~Board() {
+        // Delete the entire linked list from any point in the board history
+        BoardState *current_right = state->next;
+        BoardState *current_left = state->prev;
+
+        while(current_right) {
+            BoardState *next = current_right->next;
+            delete current_right;
+            current_right = next;
+        }
+        while(current_left) {
+            BoardState *next = current_left->prev;
+            delete current_left;
+            current_left = next;
+        }
         delete state;
     }
 
@@ -191,7 +205,7 @@ namespace chess {
     }
 
     void Board::generate_step_moves(uint64_t bitboard, bool is_king, uint64_t(*mask_func)(uint64_t)) {
-        // Generate king moves and exclude any attack squares
+        // Generate single step moves (knight, king)
         uint64_t allies = state->_bitboards[PieceType::NPieces * 2 +  _turn];
         uint64_t enemies = state->_bitboards[PieceType::NPieces * 2 + !_turn];
 
@@ -457,7 +471,16 @@ namespace chess {
     }
 
     void Board::execute_move(Move move) {
-        state->next = state->copy(); // Generate copy of the state
+        // If executing a new move while in undo state, overwrite future history
+        BoardState *current = state->next;
+        while(current) {
+            BoardState *next = current->next;
+            delete current;
+            current = next;
+        }
+
+        // Generate copy of the state to update with move execution
+        state->next = state->copy();
         state->next->prev = state;
         state = state->next;
 
@@ -567,7 +590,6 @@ namespace chess {
 
     void Board::undo_move() {
         state = state->prev;
-        delete state->next;
 
         _turn = static_cast<Color>(!_turn);
         if(_turn == Color::Black) {
@@ -575,8 +597,21 @@ namespace chess {
         }
     }
 
+    void Board::redo_move() {
+        state = state->next;
+
+        if(_turn == Color::Black) {
+            _fullmoves++;
+        }
+        _turn = static_cast<Color>(!_turn);
+    }
+
     bool Board::is_initial() {
         return state->prev == nullptr;
+    }
+
+    bool Board::is_latest() {
+        return state->next == nullptr;
     }
 
     bool Board::is_checkmate() {
@@ -630,8 +665,8 @@ namespace chess {
 
     void Board::print() {
         // Set code page to allow UTF16 characters to show (chcp 65001 on powershell)
-        if(_turn == 'w') std::cout << "White's turn.\n";
-        if(_turn == 'b') std::cout << "Black's turn.\n";
+        if(_turn == Color::White) std::cout << "White's turn.\n";
+        if(_turn == Color::Black) std::cout << "Black's turn.\n";
         std::string files = "ABCDEFGH";
         for(int rank = 7; rank >= 0; rank--) {
             std::cout << rank+1 << " ";
