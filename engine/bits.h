@@ -1,7 +1,7 @@
 #ifndef CHESS_BITS_H_
 #define CHESS_BITS_H_
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 
 #include <stdlib.h>
 #define bswap_64(x) _byteswap_uint64(x)
