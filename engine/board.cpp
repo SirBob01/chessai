@@ -515,7 +515,8 @@ namespace chess {
             int rankd = move.to.shift - move.from.shift;
             int dir = (rankd > 0) - (rankd < 0);
             Piece rook = {PieceType::Rook, _turn};
-            uint64_t rook_board = state->_bitboards[rook.get_piece_index()];
+            uint64_t rook_rank = (_turn == Color::Black) ? 0xFF00000000000000 : 0xFF;
+            uint64_t rook_board = state->_bitboards[rook.get_piece_index()] & rook_rank;
             Square target(move.to.shift - dir);
             if(rankd < 0) {
                 rook_board &= fileA;
