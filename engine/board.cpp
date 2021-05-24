@@ -614,6 +614,12 @@ namespace chess {
         return state->next == nullptr;
     }
 
+    bool Board::is_check() {
+        Piece king = {PieceType::King, _turn};
+        uint64_t kingbit = state->_bitboards[king.get_piece_index()];
+        return state->_attackers & kingbit;
+    }
+
     bool Board::is_checkmate() {
         return state->_legal_moves.size() == 0;
     }

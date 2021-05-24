@@ -163,6 +163,11 @@ namespace chess {
         bool is_latest();
 
         /**
+         * Checks if the current turn's king is in check
+         */
+        bool is_check();
+
+        /**
          * Checks if the current player is in checkmate
          */
         bool is_checkmate();
