@@ -106,17 +106,6 @@ struct Image {
     }
 };
 
-
-/**
- * Represents a single game
- */
-struct Game {
-    SleepyDiscord::User white;
-    SleepyDiscord::User black;
-    chess::Board board;
-};
-
-
 /**
  * Generate a PNG image of the board and save it to disk
  */
@@ -170,12 +159,47 @@ void generate_image(chess::Board &board, std::string filename) {
 }
 
 /**
+ * Generates a unique ID and reuses old ones
+ */
+class IDGen {
+    std::vector<uint64_t> _unused;
+    uint64_t _id_counter = 0;
+
+public:
+    uint64_t get_id() {
+        if(_unused.size()) {
+            uint64_t id = _unused.back();
+            _unused.pop_back();
+            if(_unused.size() == _unused.capacity() / 4) {
+                _unused.shrink_to_fit();
+            }
+            return id;
+        }
+        return _id_counter++;
+    }
+
+    uint64_t unregister_id(uint64_t id) {
+        _unused.push_back(id);
+    }
+};
+
+/**
+ * Represents a single game
+ */
+struct Game {
+    SleepyDiscord::User white;
+    SleepyDiscord::User black;
+    chess::Board board;
+};
+
+
+/**
  * Discord bot client running main game loop
  */
 class ChessAI : public SleepyDiscord::DiscordClient {
     std::unordered_map<uint64_t, Game> games;
     std::unordered_map<std::string, uint64_t> users;
-    uint64_t id_counter = 0;
+    IDGen id_generator;
 
 public:
     using SleepyDiscord::DiscordClient::DiscordClient;
@@ -200,23 +224,20 @@ public:
             }
 
             // Register a new game and assign its players
-            Game g;
-            g.white = message.author;
-            g.black = mentions[0];
-            games[id_counter] = g;
-            users[white] = id_counter;
-            users[black] = id_counter;
+            uint64_t game_id = id_generator.get_id();
+            Game game;
+            game.white = message.author;
+            game.black = mentions[0];
+            games[game_id] = game;
+            users[white] = game_id;
+            users[black] = game_id;
             
             sendMessage(message.channelID, "@" + message.author.username + " challenges @" + mentions[0].username + " to a chess battle! \u265A");
             sendMessage(message.channelID, "Game start!");
             
-            std::string image_filename = "../boards/"+std::to_string(id_counter)+".png";
-            generate_image(g.board, image_filename);
-            uploadFile(message.channelID, image_filename, "");
-
-            sendMessage(message.channelID, "@" + g.white.username + "'s turn.");
-            
-            id_counter++;
+            std::string image_filename = "../boards/"+std::to_string(game_id)+".png";
+            generate_image(game.board, image_filename);
+            uploadFile(message.channelID, image_filename, "@" + game.white.username + "'s turn.");
         }
         else if(command == "move") {
             std::string player = hash_user(message.author);
@@ -246,12 +267,11 @@ public:
             if(!move.is_invalid()) {
                 game.board.execute_move(move);
 
-                std::string image_filename = "../boards/"+std::to_string(id_counter)+".png";
+                std::string image_filename = "../boards/"+std::to_string(game_id)+".png";
+                std::string caption = "@" + message.author.username + " played " + move.standard_notation() + "\n";
+                caption += "@" + (game.board.get_turn() == chess::Color::White ? game.white.username : game.black.username) + "'s turn.";
                 generate_image(game.board, image_filename);
-                uploadFile(message.channelID, image_filename, "");
-
-                sendMessage(message.channelID, "@" + message.author.username + " played " + move.standard_notation());
-                sendMessage(message.channelID, "@" + (game.board.get_turn() == chess::Color::White ? game.white.username : game.black.username) + "'s turn.");
+                uploadFile(message.channelID, image_filename, caption);
             }
             else {
                 sendMessage(message.channelID, "Invalid move! :angry:");
@@ -266,14 +286,17 @@ public:
                 delete_game(message.author);
             }
         }
-        else if(command == "fen") {
+        else if(command == "board") {
             std::string player = hash_user(message.author);
             if(users.count(player) == 0) {
                 sendMessage(message.channelID, "You must challenge someone to a game first.");
                 return;
             }
-            auto &game = games[users[player]];
-            sendMessage(message.channelID, game.board.generate_fen());
+            uint64_t game_id = users[player];
+            auto &game = games[game_id];
+            std::string image_filename = "../boards/"+std::to_string(game_id)+".png";
+            generate_image(game.board, image_filename);
+            uploadFile(message.channelID, image_filename, game.board.generate_fen());
         }
         else if(command == "resign") {
             if(users.count(hash_user(message.author)) == 0) {
@@ -300,6 +323,10 @@ public:
         if(hash_user(game.white) != hash_user(game.black)) {
             users.erase(hash_user(game.black));
         }
+
+        // Reuse the id if possible
+        games[game_id] = {};
+        id_generator.unregister_id(game_id);
     }
 };
 
