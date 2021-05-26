@@ -66,9 +66,9 @@ struct Image {
     }
 
     /**
-     * Set the color of a pixel
+     * Draw a color over a pixel with alpha blending
      */
-    void set_at(Color color, int x, int y) {
+    void draw_at(Color color, int x, int y) {
         int start_i = y * (width * 4) + (x * 4);
         if(start_i > (width * height * 4)) return;
         Color current = get_at(x, y);
@@ -87,12 +87,36 @@ struct Image {
     }
 
     /**
+     * Overwrite the color of a pixel
+     */
+    void set_at(Color color, int x, int y) {
+        int start_i = y * (width * 4) + (x * 4);
+        if(start_i > (width * height * 4)) return;
+
+        data[start_i] = 255 * color.r;
+        data[start_i+1] = 255 * color.g;
+        data[start_i+2] = 255 * color.b;
+        data[start_i+3] = 255 * color.a;
+    }
+
+    /**
+     * Fill the image with a color
+     */
+    void fill(Color color) {
+        for(int row = 0; row < height; row++) {
+            for(int col = 0; col < width; col++) {
+                set_at(color, col, row);
+            }
+        }
+    }
+
+    /**
      * Draw another image from the top left corner
      */
     void draw(Image *image, int x, int y) {
         for(int row = 0; row < image->height; row++) {
             for(int col = 0; col < image->width; col++) {
-                set_at(image->get_at(col, row), x + col, y + row);
+                draw_at(image->get_at(col, row), x + col, y + row);
             }
         }
     }
@@ -106,11 +130,14 @@ struct Image {
     }
 };
 
+
 /**
  * Generate a PNG image of the board and save it to disk
  */
 void generate_image(chess::Board &board, std::string filename) {
-    Image *base = new Image(128*8, 128*8);
+    Image *base = new Image(64 + 128*8, 64 + 128*8);
+    base->fill({0.08, 0.08, 0.08, 1.0});
+
     std::vector<Image *> pieces;
     for(int i = 0; i < 12; i++) {
         pieces.push_back(new Image("../images/" + std::to_string(i) + ".png"));
@@ -125,7 +152,7 @@ void generate_image(chess::Board &board, std::string filename) {
         for(int file = 0; file < 8; file++) {
             // Render appropriate squares
             Image *tile = tiles[current_color];
-            base->draw(tile, file * tile->width, rank * tile->height);
+            base->draw(tile, file * tile->width + 32, rank * tile->height + 32);
             current_color = !current_color;
         }
         square_white = !square_white;
@@ -145,7 +172,7 @@ void generate_image(chess::Board &board, std::string filename) {
                piece.type == chess::PieceType::Rook) {
                 x_offset = 10;
             }
-            base->draw(piece_image, (file * tiles[0]->width) + x_offset, ((7 - rank) * tiles[0]->height));
+            base->draw(piece_image, (file * tiles[0]->width) + x_offset + 32, ((7 - rank) * tiles[0]->height + 32));
         }
     }
     base->save(filename);
@@ -157,6 +184,7 @@ void generate_image(chess::Board &board, std::string filename) {
     }
     delete base;
 }
+
 
 /**
  * Generates a unique ID and reuses old ones
@@ -182,6 +210,7 @@ public:
         _unused.push_back(id);
     }
 };
+
 
 /**
  * Represents a single game
@@ -330,6 +359,7 @@ public:
     }
 };
 
+
 bool prepends(std::string line, std::string query) {
     int n = line.length();
     int m = query.length();
@@ -340,6 +370,7 @@ bool prepends(std::string line, std::string query) {
     }
     return true;
 }
+
 
 std::string fetch_API_key(std::string const &key) {
     std::ifstream env(".env"); // .env should be in the same directory as the executable
@@ -353,6 +384,7 @@ std::string fetch_API_key(std::string const &key) {
     env.close();
     return "";
 }
+
 
 int main() {
     ChessAI client(fetch_API_key("DISCORD_API_KEY"), SleepyDiscord::USER_CONTROLED_THREADS);
