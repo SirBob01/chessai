@@ -178,7 +178,7 @@ public:
         return _id_counter++;
     }
 
-    uint64_t unregister_id(uint64_t id) {
+    void unregister_id(uint64_t id) {
         _unused.push_back(id);
     }
 };
