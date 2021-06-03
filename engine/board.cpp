@@ -11,6 +11,7 @@ namespace chess {
         state->_en_passant_target = _en_passant_target;
 
         state->_attackers = _attackers;
+        state->_halfmoves = _halfmoves;
 
         return state;
     }
@@ -621,7 +622,22 @@ namespace chess {
     }
 
     bool Board::is_checkmate() {
-        return state->_legal_moves.size() == 0;
+        return state->_legal_moves.size() == 0 && is_check();
+    }
+
+    bool Board::is_stalemate() {
+        return state->_legal_moves.size() == 0 && !is_check();
+    }
+
+    bool Board::is_draw() {
+        // If there are only 2 pieces left (both kings), then it is a draw
+        uint64_t all_pieces = state->_bitboards[12] | state->_bitboards[13];
+        int pieces_left = 0;
+        while(all_pieces) {
+            all_pieces &= (all_pieces-1);
+            pieces_left++;
+        }
+        return is_stalemate() || state->_halfmoves >= 100 || pieces_left == 2;
     }
 
     Move Board::create_move(Square from, Square to, char promotion) {
@@ -657,12 +673,25 @@ namespace chess {
         return {};
     }
 
+    Move Board::create_move(std::string standard_notation) {
+        for(auto &move : state->_legal_moves) {
+            if(move.standard_notation() == standard_notation) {
+                return move;
+            }
+        }
+        return {};
+    }
+
     std::vector<Move> Board::get_moves() {
         return state->_legal_moves;
     }
 
     int Board::get_halfmoves() {
         return state->_halfmoves;
+    }
+
+    uint8_t Board::get_castling_rights() {
+        return state->_castling_rights;
     }
 
     Color Board::get_turn() {

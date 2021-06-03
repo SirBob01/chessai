@@ -173,10 +173,25 @@ namespace chess {
         bool is_checkmate();
 
         /**
+         * Checks if the board is in a stalemate
+         */
+        bool is_stalemate();
+
+        /**
+         * Checks if the game is a draw
+         */
+        bool is_draw();
+
+        /**
          * Generate a valid chess move given shift positions
          * Used to validate move positions from user input
          */
         Move create_move(Square from, Square to, char promotion = 0); 
+
+        /**
+         * Generate a valid chess move given a standard notation string
+         */
+        Move create_move(std::string standard_notation); 
 
         /**
          * Get all legal moves available to the current player
@@ -187,6 +202,11 @@ namespace chess {
          * Get the current number of halfmoves to enforce the 50-move rule
          */
         int get_halfmoves();
+
+        /**
+         * Return the bitfield corresponding to castling rights
+         */
+        uint8_t get_castling_rights();
 
         /**
          * Get the current turn (either White or Black)
