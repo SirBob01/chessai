@@ -314,6 +314,10 @@ public:
                 sendMessage(message.channelID, "Checkmate! @" + winner + " wins! :party: :party: :party: :confetti_ball:");
                 delete_game(message.author);
             }
+            if(game.board.is_draw()) {
+                sendMessage(message.channelID, "It's a draw! :party: :party: :party: :confetti_ball:");
+                delete_game(message.author);
+            }
         }
         else if(command == "board") {
             std::string player = hash_user(message.author);
