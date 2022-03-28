@@ -1,3 +1,6 @@
 [submodule "deps/sleepy-discord"]
-	path = deps/sleepy-discord
+	path = vendor/sleepy-discord
 	url = https://github.com/yourWaifu/sleepy-discord.git
+[submodule "vendor/Brainiac"]
+	path = vendor/Brainiac
+	url = https://github.com/SirBob01/Brainiac
