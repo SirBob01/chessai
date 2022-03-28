@@ -291,11 +291,8 @@ class ChessAI : public SleepyDiscord::DiscordClient {
         }
 
         // Make sure both players are not in a game
-        // If playing against the bot, only make sure that the sender is not
-        // currently in a game
         if (users.count(hash_user(message.author)) ||
-            (mentions[0].ID != getID() &&
-             users.count(hash_user(mentions[0])))) {
+            users.count(hash_user(mentions[0]))) {
             sendMessage(message.channelID,
                         "One or both players are already in a game.");
             return;
