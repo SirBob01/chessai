@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <unordered_map>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -226,13 +227,16 @@ struct Game {
     SleepyDiscord::User black;
     chess::Board board;
     bool bot = false;
+
+    Game(SleepyDiscord::User &_white, SleepyDiscord::User &_black)
+        : white(_white), black(_black){};
 };
 
 /**
  * Discord bot client running main game loop
  */
 class ChessAI : public SleepyDiscord::DiscordClient {
-    std::unordered_map<uint64_t, Game> games;
+    std::unordered_map<uint64_t, std::unique_ptr<Game>> games;
     std::unordered_map<std::string, uint64_t> users;
     IDGen id_generator;
 
@@ -262,17 +266,13 @@ class ChessAI : public SleepyDiscord::DiscordClient {
     void delete_game(SleepyDiscord::User user) {
         std::string hash = hash_user(user);
         uint64_t game_id = users[hash];
-        Game &game = games[game_id];
+        Game &game = *games[game_id];
 
         users.erase(hash_user(game.white));
-
-        // In case user is playing against themself
-        if (hash_user(game.white) != hash_user(game.black)) {
-            users.erase(hash_user(game.black));
-        }
+        users.erase(hash_user(game.black));
 
         // Reuse the id if possible
-        games[game_id] = {};
+        games.erase(game_id);
         id_generator.unregister_id(game_id);
     }
 
@@ -303,20 +303,19 @@ class ChessAI : public SleepyDiscord::DiscordClient {
 
         // Register a new game and assign its players
         uint64_t game_id = id_generator.get_id();
-        Game game;
-        game.bot = mentions[0].ID == getID();
-        games[game_id] = game;
         users[hash_user(message.author)] = game_id;
         users[hash_user(mentions[0])] = game_id;
 
         // Assign each player a color (sender is white by default)
+        std::unique_ptr<Game> game_ptr;
         if (params.size() > 0 && params[0] == "b") {
-            game.black = message.author;
-            game.white = mentions[0];
+            game_ptr = std::make_unique<Game>(mentions[0], message.author);
         } else {
-            game.white = message.author;
-            game.black = mentions[0];
+            game_ptr = std::make_unique<Game>(message.author, mentions[0]);
         }
+        games[game_id] = std::move(game_ptr);
+        Game &game = *games[game_id];
+        game.bot = mentions[0].ID == getID();
 
         // Send the messages and display the board
         sendMessage(message.channelID,
@@ -333,7 +332,7 @@ class ChessAI : public SleepyDiscord::DiscordClient {
         // Handle bot making the first move
         if (game.bot && game.white.ID == getID()) {
             std::thread move(&ChessAI::bot_moves, std::ref(*this),
-                             std::ref(games[game_id].board), message.channelID);
+                             std::ref(game.board), message.channelID);
             move.join();
         }
     }
@@ -359,7 +358,7 @@ class ChessAI : public SleepyDiscord::DiscordClient {
         }
 
         uint64_t game_id = users[player_key];
-        Game &game = games[game_id];
+        Game &game = *games[game_id];
 
         // Ensure that it's this player's turn
         if ((game.board.get_turn() == chess::Color::White &&
@@ -438,7 +437,7 @@ class ChessAI : public SleepyDiscord::DiscordClient {
             return;
         }
         uint64_t game_id = users[player];
-        Game &game = games[game_id];
+        Game &game = *games[game_id];
         std::string image_filename =
             "../boards/" + std::to_string(game_id) + ".png";
         generate_image(game.board, image_filename);
