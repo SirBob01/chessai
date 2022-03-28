@@ -247,6 +247,16 @@ class ChessAI : public SleepyDiscord::DiscordClient {
     }
 
     /**
+     * Run chess bot on a separate thread
+     */
+    void bot_moves(chess::Board &board,
+                   SleepyDiscord::Snowflake<SleepyDiscord::Channel> channelID) {
+        chess::Brainiac bot;
+        chess::Move move = bot.move(board);
+        sendMessage(channelID, ";move " + move.standard_notation());
+    }
+
+    /**
      * Delete an active chess game
      */
     void delete_game(SleepyDiscord::User user) {
@@ -300,7 +310,7 @@ class ChessAI : public SleepyDiscord::DiscordClient {
         users[hash_user(mentions[0])] = game_id;
 
         // Assign each player a color (sender is white by default)
-        if (params.size() == 1 && params[0] == "b") {
+        if (params.size() > 0 && params[0] == "b") {
             game.black = message.author;
             game.white = mentions[0];
         } else {
@@ -412,16 +422,6 @@ class ChessAI : public SleepyDiscord::DiscordClient {
                                  std::ref(game.board), message.channelID);
             response.join();
         }
-    }
-
-    /**
-     * Run chess bot on a separate thread
-     */
-    void bot_moves(chess::Board &board,
-                   SleepyDiscord::Snowflake<SleepyDiscord::Channel> channelID) {
-        chess::Brainiac bot;
-        chess::Move move = bot.move(board);
-        sendMessage(channelID, ";move " + move.standard_notation());
     }
 
     /**
