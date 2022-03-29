@@ -1,6 +1,6 @@
-[submodule "vendor/Brainiac"]
-	path = vendor/Brainiac
+[submodule "src/vendor/Brainiac"]
+	path = src/vendor/Brainiac
 	url = https://github.com/SirBob01/Brainiac
-[submodule "vendor/DPP"]
-	path = vendor/DPP
+[submodule "src/vendor/DPP"]
+	path = src/vendor/DPP
 	url = https://github.com/brainboxdotcc/DPP
