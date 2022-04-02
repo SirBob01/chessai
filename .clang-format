@@ -5,3 +5,5 @@ DerivePointerAlignment: false
 PointerAlignment: Right
 AlignConsecutiveMacros: AcrossEmptyLines
 NamespaceIndentation: All
+AllowAllArgumentsOnNextLine: false
+BinPackArguments: false
