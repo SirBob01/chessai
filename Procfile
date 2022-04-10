@@ -1,0 +1,1 @@
+worker: cmake .; make -j 3; ./chessai
