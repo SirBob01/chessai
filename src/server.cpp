@@ -88,7 +88,8 @@ std::string ChessServer::hash_user(dpp::user user) {
 }
 
 dpp::message ChessServer::game_info(const dpp::interaction_create_t &event,
-                                    Game &game, std::string message) {
+                                    Game &game,
+                                    std::string message) {
     std::string image_filename =
         "../boards/" + std::to_string(game.id) + ".png";
     generate_image(game.board, image_filename);
@@ -144,7 +145,8 @@ void ChessServer::bot_moves(const dpp::interaction_create_t &event,
 }
 
 void ChessServer::on_play(const dpp::interaction_create_t &event,
-                          dpp::user &opponent, std::string color) {
+                          dpp::user &opponent,
+                          std::string color) {
     // Make sure both players are not in a game
     if (_users.count(hash_user(event.command.usr)) ||
         _users.count(hash_user(opponent))) {

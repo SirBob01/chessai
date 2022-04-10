@@ -12,7 +12,10 @@ Image::Image(int width, int height) : width(width), height(height) {
 
 Image::Image(std::string filename) {
     int desired_channels = 4; // rgba
-    data = stbi_load(filename.c_str(), &width, &height, &channels,
+    data = stbi_load(filename.c_str(),
+                     &width,
+                     &height,
+                     &channels,
                      desired_channels);
     assert(data);
     from_file = true;
@@ -28,8 +31,7 @@ Image::~Image() {
 
 Color Image::get_at(int x, int y) {
     int start_i = y * (width * 4) + (x * 4);
-    if (start_i > (width * height * 4))
-        return {0, 0, 0, 0};
+    if (start_i > (width * height * 4)) return {0, 0, 0, 0};
     return {
         data[start_i] / 255.0,
         data[start_i + 1] / 255.0,
@@ -40,8 +42,7 @@ Color Image::get_at(int x, int y) {
 
 void Image::draw_at(Color color, int x, int y) {
     int start_i = y * (width * 4) + (x * 4);
-    if (start_i > (width * height * 4))
-        return;
+    if (start_i > (width * height * 4)) return;
     Color current = get_at(x, y);
     double a0 = color.a + current.a * (1 - color.a);
     Color blended = {
@@ -59,8 +60,7 @@ void Image::draw_at(Color color, int x, int y) {
 
 void Image::set_at(Color color, int x, int y) {
     int start_i = y * (width * 4) + (x * 4);
-    if (start_i > (width * height * 4))
-        return;
+    if (start_i > (width * height * 4)) return;
 
     data[start_i] = 255 * color.r;
     data[start_i + 1] = 255 * color.g;

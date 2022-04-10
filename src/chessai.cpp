@@ -12,12 +12,10 @@
 bool prepends(std::string line, std::string query) {
     int n = line.length();
     int m = query.length();
-    if (m > n)
-        return false;
+    if (m > n) return false;
 
     for (int i = 0; i < m; i++) {
-        if (line[i] != query[i])
-            return false;
+        if (line[i] != query[i]) return false;
     }
     return true;
 }

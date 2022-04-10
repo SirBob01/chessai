@@ -43,7 +43,8 @@ class ChessServer {
     /**
      * Send an embed containing information about a game
      */
-    dpp::message game_info(const dpp::interaction_create_t &event, Game &game,
+    dpp::message game_info(const dpp::interaction_create_t &event,
+                           Game &game,
                            std::string message = "");
 
     /**
@@ -66,7 +67,8 @@ class ChessServer {
      *
      * User initiates a game
      */
-    void on_play(const dpp::interaction_create_t &event, dpp::user &opponent,
+    void on_play(const dpp::interaction_create_t &event,
+                 dpp::user &opponent,
                  std::string color);
 
     /**
