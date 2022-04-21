@@ -1,3 +1,4 @@
+#include <brainiac.h>
 #include <dpp/dpp.h>
 #include <fstream>
 #include <iostream>
@@ -44,6 +45,7 @@ int main() {
     std::string token = env_get("API_KEY");
     dpp::cluster bot(token);
     ChessServer server(bot);
+    chess::init();
 
     bot.on_log(dpp::utility::cout_logger());
 
