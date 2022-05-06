@@ -219,10 +219,7 @@ void ChessServer::on_move(const dpp::interaction_create_t &event,
 
         // Send messages based on board state
         std::string message = "";
-        if (game.board.is_check()) {
-            message = "Check! Defend your king!";
-            event.reply(game_info(event, game, message));
-        } else if (game.board.is_checkmate()) {
+        if (game.board.is_checkmate()) {
             dpp::snowflake winner =
                 (game.board.get_turn() == chess::Color::White) ? game.black.id
                                                                : game.white.id;
@@ -235,17 +232,19 @@ void ChessServer::on_move(const dpp::interaction_create_t &event,
             message = "It's a draw! :party: :party: :party: :confetti_ball:";
             event.reply(game_info(event, game, message));
             delete_game(event.command.usr);
-        } else if (game.bot && event.command.usr.id != _bot.me.id) {
-            event.reply(game_info(event, game));
-
-            // Handle bot response if it is the other player
-            std::thread response(&ChessServer::bot_moves,
-                                 std::ref(*this),
-                                 std::ref(event),
-                                 std::ref(game));
-            response.join();
         } else {
+            if (game.board.is_check()) {
+                message = "Check! Defend your king!";
+            }
             event.reply(game_info(event, game));
+            if (game.bot && event.command.usr.id != _bot.me.id) {
+                // Handle bot response if it is the other player
+                std::thread response(&ChessServer::bot_moves,
+                                     std::ref(*this),
+                                     std::ref(event),
+                                     std::ref(game));
+                response.join();
+            }
         }
     } else {
         event.reply("Invalid move! :angry:");
