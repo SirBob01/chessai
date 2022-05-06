@@ -225,11 +225,12 @@ void ChessServer::on_move(const dpp::interaction_create_t &event,
                                                                : game.white.id;
             message = "Checkmate! <@" + std::to_string(winner) +
                       "> wins! "
-                      ":party: :party: :party: :confetti_ball:";
+                      ":confetti_ball: :confetti_ball: :confetti_ball:";
             event.reply(game_info(event, game, message));
             delete_game(event.command.usr);
         } else if (game.board.is_draw()) {
-            message = "It's a draw! :party: :party: :party: :confetti_ball:";
+            message =
+                "It's a draw! :confetti_ball: :confetti_ball: :confetti_ball:";
             event.reply(game_info(event, game, message));
             delete_game(event.command.usr);
         } else {
