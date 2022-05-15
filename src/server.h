@@ -16,7 +16,7 @@ struct Game {
     uint64_t id;
     dpp::user white;
     dpp::user black;
-    chess::Board board;
+    brainiac::Board board;
     bool bot = false;
 
     Game(dpp::user _white, dpp::user _black) : white(_white), black(_black){};
@@ -25,7 +25,7 @@ struct Game {
 /**
  * Generate a PNG image of the board and save it to disk
  */
-void generate_image(chess::Board &board, std::string filename);
+void generate_image(brainiac::Board &board, std::string filename);
 
 /**
  * Discord bot client running main game loop
@@ -35,7 +35,9 @@ class ChessServer {
     std::unordered_map<std::string, uint64_t> _users;
     IDGen _id_generator;
 
-    dpp::cluster &_bot;
+    dpp::cluster &_client;
+
+    brainiac::Search _bot;
 
   public:
     ChessServer(dpp::cluster &bot);

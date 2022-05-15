@@ -45,7 +45,7 @@ int main() {
     std::string token = env_get("API_KEY");
     dpp::cluster bot(token);
     ChessServer server(bot);
-    chess::init();
+    brainiac::init();
 
     bot.on_log(dpp::utility::cout_logger());
 

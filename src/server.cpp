@@ -1,6 +1,6 @@
 #include "server.h"
 
-void generate_image(chess::Board &board, std::string filename) {
+void generate_image(brainiac::Board &board, std::string filename) {
     Image *base = new Image(64 + 128 * 8, 64 + 128 * 8);
     base->fill({0.08, 0.08, 0.08, 1.0});
 
@@ -26,16 +26,16 @@ void generate_image(chess::Board &board, std::string filename) {
     for (int rank = 7; rank >= 0; rank--) {
         for (int file = 0; file < 8; file++) {
             // Render a the piece on top (if any)
-            chess::Piece piece = board.get_at_coords(rank, file);
+            brainiac::Piece piece = board.get_at_coords(rank, file);
             if (piece.is_empty()) {
                 continue;
             }
             Image *piece_image = pieces[piece.get_piece_index()];
 
             int x_offset = 0;
-            if (piece.type == chess::PieceType::Pawn ||
-                piece.type == chess::PieceType::Knight ||
-                piece.type == chess::PieceType::Rook) {
+            if (piece.type == brainiac::PieceType::Pawn ||
+                piece.type == brainiac::PieceType::Knight ||
+                piece.type == brainiac::PieceType::Rook) {
                 x_offset = 10;
             }
             base->draw(piece_image,
@@ -53,7 +53,7 @@ void generate_image(chess::Board &board, std::string filename) {
     delete base;
 }
 
-ChessServer::ChessServer(dpp::cluster &bot) : _bot(bot) {
+ChessServer::ChessServer(dpp::cluster &bot) : _client(bot) {
     bot.on_interaction_create([&bot,
                                this](const dpp::interaction_create_t &event) {
         std::string command = event.command.get_command_name();
@@ -128,8 +128,7 @@ void ChessServer::delete_game(dpp::user user) {
 
 void ChessServer::bot_moves(const dpp::interaction_create_t &event,
                             Game &game) {
-    chess::Brainiac bot;
-    chess::Move move = bot.move(game.board);
+    brainiac::Move move = _bot.move(game.board);
     game.board.execute_move(move);
 
     dpp::user user;
@@ -138,10 +137,11 @@ void ChessServer::bot_moves(const dpp::interaction_create_t &event,
     } else {
         user = game.white;
     }
-    _bot.message_create(game_info(event,
-                                  game,
-                                  "<@" + std::to_string(user.id) + "> I move " +
-                                      move.standard_notation()));
+    _client.message_create(game_info(event,
+                                     game,
+                                     "<@" + std::to_string(user.id) +
+                                         "> I move " +
+                                         move.standard_notation()));
 }
 
 void ChessServer::on_play(const dpp::interaction_create_t &event,
@@ -169,12 +169,12 @@ void ChessServer::on_play(const dpp::interaction_create_t &event,
     _games[game_id] = std::move(game_ptr);
     Game &game = *_games[game_id];
     game.id = game_id;
-    game.bot = opponent.id == _bot.me.id;
+    game.bot = opponent.id == _client.me.id;
 
     event.reply(game_info(event, game));
 
     // Handle bot making the first move
-    if (game.bot && game.white.id == _bot.me.id) {
+    if (game.bot && game.white.id == _client.me.id) {
         std::thread move(&ChessServer::bot_moves,
                          std::ref(*this),
                          std::ref(event),
@@ -194,9 +194,9 @@ void ChessServer::on_move(const dpp::interaction_create_t &event,
     // Ensure that it's this player's turn
     uint64_t game_id = _users[player];
     Game &game = *_games[game_id];
-    if ((game.board.get_turn() == chess::Color::White &&
+    if ((game.board.get_turn() == brainiac::Color::White &&
          event.command.usr.id != game.white.id) ||
-        (game.board.get_turn() == chess::Color::Black &&
+        (game.board.get_turn() == brainiac::Color::Black &&
          event.command.usr.id != game.black.id)) {
         event.reply("Impatient! Wait for your turn... :angry:");
         return;
@@ -209,9 +209,9 @@ void ChessServer::on_move(const dpp::interaction_create_t &event,
     if (move_input.length() == 5) {
         promotion = move_input[4];
     }
-    chess::Move move = game.board.create_move(chess::Square(from),
-                                              chess::Square(to),
-                                              promotion);
+    brainiac::Move move = game.board.create_move(brainiac::Square(from),
+                                                 brainiac::Square(to),
+                                                 promotion);
 
     // Execute the move
     if (!move.is_invalid()) {
@@ -221,8 +221,9 @@ void ChessServer::on_move(const dpp::interaction_create_t &event,
         std::string message = "";
         if (game.board.is_checkmate()) {
             dpp::snowflake winner =
-                (game.board.get_turn() == chess::Color::White) ? game.black.id
-                                                               : game.white.id;
+                (game.board.get_turn() == brainiac::Color::White)
+                    ? game.black.id
+                    : game.white.id;
             message = "Checkmate! <@" + std::to_string(winner) +
                       "> wins! "
                       ":confetti_ball: :confetti_ball: :confetti_ball:";
@@ -238,7 +239,7 @@ void ChessServer::on_move(const dpp::interaction_create_t &event,
                 message = "Check! Defend your king!";
             }
             event.reply(game_info(event, game));
-            if (game.bot && event.command.usr.id != _bot.me.id) {
+            if (game.bot && event.command.usr.id != _client.me.id) {
                 // Handle bot response if it is the other player
                 std::thread response(&ChessServer::bot_moves,
                                      std::ref(*this),
