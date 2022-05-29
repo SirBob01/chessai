@@ -30,7 +30,7 @@ void generate_image(brainiac::Board &board, std::string filename) {
             if (piece.is_empty()) {
                 continue;
             }
-            Image *piece_image = pieces[piece.get_piece_index()];
+            Image *piece_image = pieces[piece.get_index()];
 
             int x_offset = 0;
             if (piece.type == brainiac::PieceType::Pawn ||
@@ -129,7 +129,7 @@ void ChessServer::delete_game(dpp::user user) {
 void ChessServer::bot_moves(const dpp::interaction_create_t &event,
                             Game &game) {
     brainiac::Move move = _bot.move(game.board);
-    game.board.execute_move(move);
+    game.board.make_move(move);
 
     dpp::user user;
     if (event.command.usr.id == game.black.id) {
@@ -209,13 +209,14 @@ void ChessServer::on_move(const dpp::interaction_create_t &event,
     if (move_input.length() == 5) {
         promotion = move_input[4];
     }
-    brainiac::Move move = game.board.create_move(brainiac::Square(from),
-                                                 brainiac::Square(to),
-                                                 promotion);
+    brainiac::Move move =
+        game.board.create_move(brainiac::string_to_square(from),
+                               brainiac::string_to_square(to),
+                               promotion);
 
     // Execute the move
     if (!move.is_invalid()) {
-        game.board.execute_move(move);
+        game.board.make_move(move);
 
         // Send messages based on board state
         std::string message = "";
