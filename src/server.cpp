@@ -33,9 +33,9 @@ void generate_image(brainiac::Board &board, std::string filename) {
             Image *piece_image = pieces[piece.get_index()];
 
             int x_offset = 0;
-            if (piece.type == brainiac::PieceType::Pawn ||
-                piece.type == brainiac::PieceType::Knight ||
-                piece.type == brainiac::PieceType::Rook) {
+            if (piece.get_type() == brainiac::PieceType::Pawn ||
+                piece.get_type() == brainiac::PieceType::Knight ||
+                piece.get_type() == brainiac::PieceType::Rook) {
                 x_offset = 10;
             }
             base->draw(piece_image,
